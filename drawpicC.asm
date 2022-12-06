@@ -1,9 +1,8 @@
+.286
 .Model Small
 .Stack 64
 .Data
 
-chickenWidth EQU 200
-chickenHeight EQU 200
 
 BoardFilename DB 'assets\Binfiles\board.bin', 0
 b_rookFilename DB 'assets\Binfiles\b_rook.bin', 0
@@ -54,6 +53,12 @@ DrawP MACRO Dataarray , x, y
     call DrawPiece
 ENDM
 
+DrawSq MACRO x, y
+    mov ah,x
+    mov al,y
+    call DrawSquare
+ENDM
+
 MAIN PROC FAR
     MOV AX , @DATA
     MOV DS , AX
@@ -84,6 +89,33 @@ MAIN ENDP
 
 ;initializes graphics, loads all pictures and draw initial board config
 Init PROC
+    pusha
+    mov Di, 0
+    mov Bl, 200
+    mov ax,0A000h
+    mov es,ax
+    sidebar1:  ; draw 1 square
+        mov al,0fh
+        mov cx,60d
+        rep STOSB
+        SUB DI,60d
+        ADD DI,320D
+        DEC BL
+    JNZ sidebar1
+
+    mov Di, 320-60
+    mov Bl, 200
+    mov ax,0A000h
+    mov es,ax
+    sidebar2:  ; draw 1 square
+        mov al,0fh
+        mov cx,60d
+        rep STOSB
+        SUB DI,60d
+        ADD DI,320D
+        DEC BL
+    JNZ sidebar2
+
     LoadImage BoardFilename, 198, BoardData
     LoadImage b_rookFilename, 20, b_rookData
     LoadImage w_rookFilename, 20, w_rookData
@@ -120,38 +152,6 @@ Init PROC
    DrawP b_pawnData , 200, 40 ; BL contains index at the current drawn pixel	
    DrawP b_pawnData , 220, 40 ; BL contains index at the current drawn pixel	
 
-;=============================================================
-    ; trying to highlight a square
-    ;LEA BX , Dataarray ; BL contains index at the current drawn pixel	
-    MOV CX,80
-    MOV DX,159
-    MOV AH,0ch    
-    mov Si, Cx
-    add Si, 20
-    mov Di, dx
-    add Di,20
-    ; Drawing loop
-    drawLoop2:
-      ;  MOV AL,[BX]
-        MOV AL, 4dh
-        cmp AL, 0fh
-        jz skip2
-        INT 10h
-        skip2: 
-        INC CX
-        INC BX
-        CMP CX, Si
-    JNE drawLoop2 
-        
-        MOV CX , Si
-        Sub CX, 20
-        INC DX
-        CMP DX , Di
-    JNE drawLoop2
-
-
-
-;=============================================================
 
    DrawP w_rookData , 80, 159 ; BL contains index at the current drawn pixel	
    DrawP w_knightData , 100, 159 ; BL contains index at the current drawn pixel	
@@ -170,9 +170,37 @@ Init PROC
    DrawP w_pawnData , 200, 140 ; BL contains index at the current drawn pixel	
    DrawP w_pawnData , 220, 140 ; BL contains index at the current drawn pixel		
   
+  popa
     ret
 Init ENDP
 
+;draw square // for highlighting 
+DrawSquare PROC ; put y in al
+                ; x in ah
+    pusha
+    mov Bl, AH
+    mov AH,0
+    mov BH,0
+    mov Cx, 320D
+    mul Cx
+    mov Di, Ax
+    add Di, BX
+
+    MOV BL, 20d
+
+    mov ax,0A000h
+    mov es,ax
+    Square:  ; draw 1 square
+        mov al,4dh
+        mov cx,20d
+        rep STOSB
+        SUB DI,20d
+        ADD DI,320D
+        DEC BL
+    JNZ Square
+    popa
+    ret
+DrawSquare ENDP
 
 DrawPiece PROC ; load cx:dx starting position x:y in pixels
     
@@ -205,7 +233,6 @@ DrawPiece ENDP
 
 
 DrawBoard PROC 
-    
     
     MOV CX,60
     MOV DX,0
