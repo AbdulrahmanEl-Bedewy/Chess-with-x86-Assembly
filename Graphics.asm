@@ -1,8 +1,11 @@
 Public Init
 Public DrawSquare
 Public DrawPiece
+Public DrawPieces
 Public DrawBoard
 Public RedrawBoardSq
+Public RedrawPiece
+EXTRN to_idx:FAR
 EXTRN chessBoard:byte
 include Macro.inc
 .286
@@ -41,6 +44,19 @@ b_queenData DB 20*20 dup(0)
 w_queenData DB 20*20 dup(0)
 b_pawnData DB 20*20 dup(0)
 w_pawnData DB 20*20 dup(0)
+
+B_rook db "B0"
+W_rook db "W0"
+B_knight db "B1"
+W_knight db "W1"
+B_bishop db "B2"
+W_bishop db "W2"
+B_king db "B3"
+W_king db "W3"
+B_queen db "B4"
+W_queen db "W4"
+B_pawn db "B5"
+W_pawn db "W5"
 
 .Code
 
@@ -101,10 +117,10 @@ Init PROC
    DrawP b_rookData,     1, 1 ;BL contains index at the current drawn pixel	
    DrawP b_knightData,   2, 1 ; BL contains index at the current drawn pixel	
    DrawP b_bishopData,   3, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_queenData,    4, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_kingData,     5, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_knightData,   6, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_bishopData,   7, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_kingData,     4, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_queenData,    5, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_bishopData,   6, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_knightData,   7, 1 ; BL contains index at the current drawn pixel	
    DrawP b_rookData,     8, 1 ; BL contains index at the current drawn pixel	
    DrawP b_pawnData,     1, 2 ; BL contains index at the current drawn pixel	
    DrawP b_pawnData,     2, 2 ; BL contains index at the current drawn pixel	
@@ -119,10 +135,10 @@ Init PROC
    DrawP w_rookData,     1, 8 ;BL contains index at the current drawn pixel	
    DrawP w_knightData,   2, 8 ; BL contains index at the current drawn pixel	
    DrawP w_bishopData,   3, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_queenData,    4, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_kingData,     5, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_knightData,   6, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_bishopData,   7, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_kingData,     4, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_queenData,    5, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_bishopData,   6, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_knightData,   7, 8 ; BL contains index at the current drawn pixel	
    DrawP w_rookData,     8, 8 ; BL contains index at the current drawn pixel	
    DrawP w_pawnData,     1, 7 ; BL contains index at the current drawn pixel	
    DrawP w_pawnData,     2, 7 ; BL contains index at the current drawn pixel	
@@ -216,8 +232,9 @@ DrawPiece PROC ; load cx:dx starting position x:y col:row 1-8:1-8
 DrawPiece ENDP
 
 ;description
-RedrawBoardSq PROC ; load cx:dx starting position x:y col:row 1-8:1-8
+RedrawBoardSq PROC ; load ch:cl starting position x:y col:row 1-8:1-8
     pusha
+
     Lea Bx,  BoardData
     
     mov AH,0
@@ -281,6 +298,114 @@ RedrawBoardSq PROC ; load cx:dx starting position x:y col:row 1-8:1-8
     ret
 RedrawBoardSq ENDP
 
+RedrawPiece PROC
+    pusha
+    ;check if square had piece and draw it
+    
+    ;Gets start idx of Position (CX) and puts it in DI
+    ;call to_idx
+    dec cl
+    dec ch
+    Lea di, chessBoard
+    mov al,cl
+    mov ah,0
+    mov bl,16d
+    mul bl
+    add di, ax
+
+    mov al,ch
+    mov ah,0
+    mov bl,2d
+    mul bl
+    add di,ax
+
+
+    
+    mov bl,'0'
+    cmp [di],bl
+    je nopiece_mid
+
+    mov bl,'B'
+    cmp [di],bl
+    ja White
+    inc di
+    mov bl,'0'
+    cmp [di],bl
+    je br
+    inc bl
+    cmp [di],bl
+    je bkt
+    inc bl
+    cmp [di],bl
+    je bb
+    inc bl
+    cmp [di],bl
+    je bk
+    inc bl
+    cmp [di], bl
+    je bq
+    inc bl
+    cmp [di],bl
+    je bpw
+    nopiece_mid:jmp nopiece
+
+    White:
+    inc di
+    mov bl,'0'
+    cmp [di],bl
+    je wr
+    inc bl
+    cmp [di],bl
+    je wkt
+    inc bl
+    cmp [di],bl
+    je wb
+    inc bl
+    cmp [di],bl
+    je wk
+    inc bl
+    cmp [di], bl
+    je wq
+    inc bl
+    cmp [di],bl
+    je wpw
+
+    jmp nopiece ;error handling
+
+    br: lea bx,b_rookData
+    jmp onepiece
+    bkt:lea bx,b_knightData
+    jmp onepiece
+    bb:lea bx,b_bishopData
+    jmp onepiece
+    bk:lea bx,b_kingData
+    jmp onepiece
+    bq:lea bx,b_queenData
+    jmp onepiece
+    wr:lea bx,w_rookData
+    jmp onepiece
+    wkt:lea bx,w_knightData
+    jmp onepiece
+    wb:lea bx,w_bishopData
+    jmp onepiece
+    wk:lea bx,w_kingData
+    jmp onepiece
+    wq:lea bx,w_queenData
+    jmp onepiece
+    bpw:lea bx,b_pawnData
+    jmp onepiece
+    wpw:lea bx,w_pawnData
+
+    onepiece:
+    inc cl
+    inc ch
+    call DrawPiece
+
+    ;no piece
+    nopiece: 
+    popa
+    ret
+RedrawPiece ENDP
 DrawBoard PROC 
     pusha 
     LEA BX , BoardData ; BL contains index at the current drawn pixel	
@@ -307,7 +432,8 @@ DrawBoard ENDP
 
 ;Loops on the board array and Draws all pieces
 DrawPieces PROC
-    ;Lea 
+    Lea bx, chessBoard
+
 DrawPieces ENDP
 
 OpenFile PROC ;load offset of file name in Dx
