@@ -22,9 +22,12 @@ chessBoard  db "B0","B1","B2","B3","B4","B2","B1","B0"
             db "00","00","00","00","00","00","00","00"
             db "W5","W5","W5","W5","W5","W5","W5","W5"
             db "W0","W1","W2","W3","W4","W2","W1","W0"
-selPos label byte
+higlight_Pos label byte
 px  db 1
 py  db 8
+selPos label byte ; current selected piece position
+hx  db 0
+hy  db 0
 sq db 20 dup('$')
 .Code
 
@@ -38,15 +41,74 @@ MAIN PROC FAR
     DrawSq px, py
     MOV ch,px
     MOV cl,py
+    call RedrawPiece
 GameLP:
 
     mov ah,0
     int 16h    
     ;select key
-    ;cmp al,'q'
+    cmp al,'q'
+    jne move
 
+    call to_idx
+    mov bl,'0'
+    cmp [di], bl
+    jne select_piece
 
+    ; pressed Q on empty square. if a piece is already selected move piece to that square
+    ; if hx == 0 || hy == 0 then no piece selected
+    cmp hx,0
+    je move
+
+    ; if there was some piece previously selected move it 
+    mov bx,di ; bx is the empty square position in chessboard array 
+    mov ch, hx
+    mov cl, hy
+    call RedrawBoardSq
+    call to_idx ; di is the previously selected piece position in chessboard array
+    mov cl, [di]
+    mov [bx], cl
+    mov ah, '0'
+    mov [di], ah
+    inc di
+    inc bx
+    mov cl, [di]
+    mov [bx], cl
+    mov [di], ah  
+
+    mov ch, px
+    mov cl, py
+    call RedrawPiece
+
+    mov hx,0
+    mov hy,0
+
+    jmp move
+
+    ; no piece was previously selected so select current piece
+    ; or another piece is selected
+    select_piece:
+    ; remove prev highlighted piece background
+    mov ch, hx
+    mov cl, hy
+    call RedrawBoardSq
+    call RedrawPiece
+
+    mov ch, px
+    mov cl, py
+
+    mov hx, ch
+    mov hy, cl
+
+    jmp move
+GameLPmid:
+jmp GameLP
+
+move:
     ;movement keys
+    MOV ch,px
+    MOV cl,py
+    
     cmp al,'e'
     jz ending_mid
     cmp al,'d'
@@ -60,9 +122,7 @@ GameLP:
     jmp GameLP
     Right:
     cmp px,8
-    je GameLP
-    MOV ch,px
-    MOV cl,py
+    je GameLPmid
     add px,1
     jmp lp
 
@@ -71,23 +131,17 @@ GameLP:
 
     Left:
     cmp px,1
-    je GameLP
-    MOV ch,px
-    MOV cl,py
+    je GameLPmid
     sub px,1
     jmp lp
     up:
     cmp py,1
-    je GameLP
-    MOV ch,px
-    MOV cl,py
+    je GameLPmid
     sub py,1
     jmp lp
     down:
     cmp py,8
-    je GameLP
-    MOV ch,px
-    MOV cl,py
+    je GameLPmid
     add py,1
    lp:  
     ;call Init
@@ -96,10 +150,19 @@ GameLP:
     ;call DrawPieces
     DrawSq px, py
     call RedrawPiece
+
+    cmp hx,0
+    je skip
+    ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+    DrawSq hx, hy
+    mov ch, hx
+    mov cl, hy
+    call RedrawPiece
+    skip:
     mov ch,px
     mov cl,py
     call RedrawPiece
-    jmp GameLP
+    jmp GameLPmid
     
     ending:
     
