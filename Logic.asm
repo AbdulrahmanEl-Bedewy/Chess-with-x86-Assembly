@@ -6,6 +6,7 @@ EXTRN DrawBoard:FAR
 EXTRN RedrawBoardSq:FAR
 EXTRN RedrawPiece:FAR
 EXTRN DrawPossibleMoves:FAR
+EXTRN DrawPossibleAttacks:FAR
 ;EXTRN Moves_bishop:FAR
 Public to_idx
 Public chessBoard
@@ -27,7 +28,7 @@ chessBoard  db "B0","B1","B2","B3","B4","B2","B1","B0"
             db "W5","W5","W5","W5","W5","W5","W5","W5"
             db "W0","W1","W2","W3","W4","W2","W1","W0"
 
-ValidMoves db 20 dup('$$'), '$$$'  ; assuming that the max no. of possible moves for 1 piece is 20 
+ValidMoves db 20 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 20 
                             ; idk the correct number
 ValidAttacks db 20 dup('$$'), '$' 
 
@@ -58,6 +59,45 @@ GameLP:
     ;select key
     cmp al,'q'
     jne G_L_move_mid
+    
+
+
+    lea di, ValidMoves
+    mov al, '$'
+    G_Lp_ClearMoves:
+        cmp [di],al
+        je done
+
+        mov ch, [di]
+        mov cl, [di+1]
+        call RedrawBoardSq
+
+        mov [di], al
+        mov [di+1], al
+
+        add di,2
+        jmp G_Lp_ClearMoves
+
+    done: 
+
+    lea di, ValidAttacks
+    mov al, '$'
+    G_Lp_ClearAttacks:
+        cmp [di],al
+        je done2
+
+        mov ch, [di]
+        mov cl, [di+1]
+        call RedrawBoardSq
+        call RedrawPiece
+
+        mov [di], al
+        mov [di+1], al
+
+        add di,2
+        jmp G_Lp_ClearAttacks
+
+    done2: 
 
     mov ch,px
     mov cl,py
@@ -67,13 +107,20 @@ GameLP:
     jne select_piece
 
 
-    mov dl,'1'
-    mov ah,2
-    int 21h
+    ; mov dl,'1'
+    ; mov ah,2
+    ; int 21h
     ; pressed Q on empty square. if a piece is already selected move piece to that square
     ; if hx == 0 || hy == 0 then no piece selected
     cmp hx,0
     je GameLP
+
+    ;=============
+    jmp G_L_skip_move_mid
+    G_L_move_mid:
+    jmp move
+    G_L_skip_move_mid:
+    ;=============
 
     ; if there was some piece previously selected move it 
     mov bx,di ; bx is the empty square position in chessboard array 
@@ -92,38 +139,33 @@ GameLP:
     mov [di], ah  
     
 
-     ;call ClearValidMoves
-    lea si, ValidMoves
-    mov al, '$'
-    ; does weird stuff when used as a proc
-    C_V_M_remove_excess1:
-        cmp [si],al
-        je C_V_M_move1
+ ;call ClearValidMoves
+    ; lea si, ValidMoves
+    ; mov al, '$'
+    ; ; does weird stuff when used as a proc
+    ; C_V_M_remove_excess1:
+    ;     cmp [si],al
+    ;     je C_V_M_move1
 
-        mov ch, [si]
-        mov cl, [si+1]
-        call RedrawBoardSq
-        ;call RedrawPiece
+    ;     mov ch, [si]
+    ;     mov cl, [si+1]
+    ;     call RedrawBoardSq
+    ;     ;call RedrawPiece
 
-        mov [si], al
-        mov [si + 1], al
-        add si , 2
-        jmp C_V_M_remove_excess1
-    C_V_M_move1:
+    ;     mov [si], al
+    ;     mov [si + 1], al
+    ;     add si , 2
+    ;     jmp C_V_M_remove_excess1
+; C_V_M_move1:
 
     mov ch, px
     mov cl, py
+    DrawSq px, py
     call RedrawPiece
 
     mov hx,0
     mov hy,0
     
-    ;=============
-    jmp G_L_skip_move_mid
-    G_L_move_mid:
-    jmp move
-    G_L_skip_move_mid:
-    ;=============
 
    
 
@@ -132,9 +174,9 @@ GameLP:
     ; no piece was previously selected so select current piece
     ; or another piece is selected
     select_piece:
-    mov dl,'2'
-    mov ah,2
-    int 21h
+    ; mov dl,'2'
+    ; mov ah,2
+    ; int 21h
     ; remove prev highlighted piece background
     mov ch, hx
     mov cl, hy
@@ -142,25 +184,25 @@ GameLP:
     call RedrawPiece
     
     ;call ClearValidMoves
-    lea si, ValidMoves
-    mov al, '$'
+    ; lea si, ValidMoves
+    ; mov al, '$'
     ; does weird stuff when used as a proc
-    C_V_M_remove_excess:
-        cmp [si],al
-        je C_V_M_move
+    ; C_V_M_remove_excess:
+    ;     cmp [si],al
+    ;     je C_V_M_move
 
 
-        mov ch, [si]
-        mov cl, [si+1]
-        call RedrawBoardSq
-        ;call RedrawPiece
+    ;     mov ch, [si]
+    ;     mov cl, [si+1]
+    ;     call RedrawBoardSq
+    ;     ;call RedrawPiece
 
 
-        mov [si], al
-        mov [si + 1], al
-        add si , 2
-        jmp C_V_M_remove_excess
-    C_V_M_move:
+    ;     mov [si], al
+    ;     mov [si + 1], al
+    ;     add si , 2
+    ;     jmp C_V_M_remove_excess
+    ; C_V_M_move:
 
     mov ch, px
     mov cl, py
@@ -171,6 +213,7 @@ GameLP:
   
     call GetValidMoves
     call DrawPossibleMoves
+    call DrawPossibleAttacks
 
 
     jmp GameLP
@@ -221,9 +264,10 @@ move:
     call RedrawBoardSq
     ;call DrawBoard
     ;call DrawPieces
+    call DrawPossibleMoves
+    call DrawPossibleAttacks
     DrawSq px, py
     call RedrawPiece
-    call DrawPossibleMoves
 
     cmp hx,0
     je skip
@@ -309,14 +353,15 @@ to_px ENDP
 GetValidMoves PROC
     pusha
 
-    mov dl,'3'
-    mov ah,2
-    int 21h
+    ; mov dl,'3'
+    ; mov ah,2
+    ; int 21h
 
 
     call to_idx
     lea si, ValidMoves
     mov bl, '0'
+    mov dx,0
     cmp [di+1],bl
     je pr
     inc bl
@@ -336,9 +381,10 @@ GetValidMoves PROC
     je ppw
 
     pr:         ;possible moves for rook
-    mov dl,'4'
-    mov ah,2
-    int 21h
+    ; mov dl,'4'
+    ; mov ah,2
+    ; int 21h
+    ;mov dx,0
     call Moves_rook
     popa
     ret
@@ -347,6 +393,7 @@ GetValidMoves PROC
     popa
     ret
     pb:         ;possible moves for bishop
+ ;   mov dx,0
     call Moves_bishop
     popa
     ret
@@ -355,6 +402,7 @@ GetValidMoves PROC
     popa
     ret
     pq:         ;possible moves for queen
+  ;  mov dx,0
     call Moves_rook
     call Moves_bishop
     popa
@@ -367,13 +415,14 @@ GetValidMoves ENDP
 
 ;DI has idx
 Moves_rook PROC ; lea si with valid moves array
+                ; lea dx with offset in Validattack
     ;pusha
-    mov dl,'5'
-    mov ah,2
-    int 21h
+    ; mov dl,'5'
+    ; mov ah,2
+    ; int 21h
 
 
-    mov dx,0
+    ;mov dx,0
     mov bx,di
     add bx,2
     mov al,'0'
@@ -514,12 +563,13 @@ Moves_rook ENDP
 
 ;DI has idx
 Moves_bishop PROC ; load si with valid moves
+                  ; lea dx with offset in Validattack
     ;pusha
-    mov dl,'6'
-    mov ah,2
-    int 21h
+    ; mov dl,'6'
+    ; mov ah,2
+    ; int 21h
 
-    mov dl,0
+;    mov dl,0
     mov bx,di
     sub bx, 14
     mov dh,'0'

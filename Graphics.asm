@@ -6,9 +6,11 @@ Public DrawBoard
 Public RedrawBoardSq
 Public RedrawPiece
 Public DrawPossibleMoves
+Public DrawPossibleAttacks
 EXTRN to_idx:FAR
 EXTRN chessBoard:byte
 EXTRN ValidMoves:byte
+EXTRN ValidAttacks:byte
 include Macro.inc
 .286
 .Model Small
@@ -158,7 +160,9 @@ Init ENDP
 ;draw square // for highlighting 
 DrawSquare PROC ; put y in al
                 ; x in bl
+                ; color in dl
     pusha
+    push dx
     mov AH,0
     mov BH,0
 
@@ -179,8 +183,10 @@ DrawSquare PROC ; put y in al
 
     mov ax,0A000h
     mov es,ax
+    pop dx
+    mov al,dl
     Square:  ; draw 1 square
-        mov al,4dh
+        ;mov al,4dh
         mov cx,20d
         rep STOSB
         SUB DI,20d
@@ -479,6 +485,7 @@ DrawPossibleMoves PROC
         je DPM_end
         mov bl,[di]
         mov al,[di+1]
+        mov dl, 66h
         call DrawSquare
         add di, 2
         jmp DPM_Draw
@@ -487,6 +494,31 @@ DrawPossibleMoves PROC
     popa
     ret
 DrawPossibleMoves ENDP
+
+DrawPossibleAttacks PROC
+    pusha
+    lea di, ValidAttacks
+    mov cl, '$'
+    DPA_Draw:
+        cmp [di], cl
+        je DPA_end
+        ; mov bl,24h
+        ; mov al, 24h
+        mov bl,[di]
+        mov al,[di+1]
+        mov dl, 4h
+        call DrawSquare
+        mov ch,[di]
+        mov cl,[di+1]
+        call RedrawPiece
+        add di, 2
+        jmp DPA_Draw
+
+    DPA_end:
+    popa
+    ret
+DrawPossibleAttacks ENDP
+
 
 CloseFile PROC 
 	MOV AH, 3Eh
