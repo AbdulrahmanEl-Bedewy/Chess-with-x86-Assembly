@@ -121,8 +121,8 @@ Init PROC
    DrawP b_rookData,     1, 1 ;BL contains index at the current drawn pixel	
    DrawP b_knightData,   2, 1 ; BL contains index at the current drawn pixel	
    DrawP b_bishopData,   3, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_kingData,     4, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_queenData,    5, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_queenData,    4, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_kingData,     5, 1 ; BL contains index at the current drawn pixel	
    DrawP b_bishopData,   6, 1 ; BL contains index at the current drawn pixel	
    DrawP b_knightData,   7, 1 ; BL contains index at the current drawn pixel	
    DrawP b_rookData,     8, 1 ; BL contains index at the current drawn pixel	
@@ -139,8 +139,8 @@ Init PROC
    DrawP w_rookData,     1, 8 ;BL contains index at the current drawn pixel	
    DrawP w_knightData,   2, 8 ; BL contains index at the current drawn pixel	
    DrawP w_bishopData,   3, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_kingData,     4, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_queenData,    5, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_queenData,    4, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_kingData,     5, 8 ; BL contains index at the current drawn pixel	
    DrawP w_bishopData,   6, 8 ; BL contains index at the current drawn pixel	
    DrawP w_knightData,   7, 8 ; BL contains index at the current drawn pixel	
    DrawP w_rookData,     8, 8 ; BL contains index at the current drawn pixel	
@@ -498,9 +498,9 @@ DrawPossibleMoves ENDP
 DrawPossibleAttacks PROC
     pusha
     lea di, ValidAttacks
-    mov cl, '$'
+    mov ah, '$'
     DPA_Draw:
-        cmp [di], cl
+        cmp [di], ah
         je DPA_end
         ; mov bl,24h
         ; mov al, 24h

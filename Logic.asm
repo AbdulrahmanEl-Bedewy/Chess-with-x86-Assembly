@@ -28,9 +28,13 @@ chessBoard  db "B0","B1","B2","B3","B4","B2","B1","B0"
             db "W5","W5","W5","W5","W5","W5","W5","W5"
             db "W0","W1","W2","W3","W4","W2","W1","W0"
 
-ValidMoves db 20 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 20 
+ValidMoves db 24 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 20 
                             ; idk the correct number
-ValidAttacks db 20 dup('$$'), '$' 
+ValidAttacks db 24 dup('$$'), '$' 
+
+;To display dead pieces
+B_DeadPiece db 16 dup('$$'),'$'
+W_DeadPiece db 16 dup('$$'),'$'
 
 higlight_Pos label byte
 px  db 1
@@ -39,6 +43,8 @@ selPos label byte ; current selected piece position
 hx  db 0
 hy  db 0
 sq db 20 dup('$')
+
+CLR db 0
 .Code
 
 
@@ -46,27 +52,42 @@ MAIN PROC FAR
     MOV AX , @DATA
     MOV DS , AX
     
-    
+    ;Initialize pieces to locations
+    ;Draw highlighted square default
     call Init
     DrawSq px, py
     MOV ch,px
     MOV cl,py
     call RedrawPiece
+;======================================================================================
+;MAIN GAME LOOP
+;Handles all game logic
+;Including:
+;   1-Check for input
+;   2-Move piece
+;   3-Getting available moves
 GameLP:
-
+    mov ch,px
+    mov cl,py
     mov ah,0
     int 16h    
-    ;select key
+    ;Check if select key pressed
     cmp al,'q'
-    jne G_L_move_mid
-    
+    jne Check_Movement_Keys_mid1 ; Check_Movement_Keys_mid1Not Select key (Check Movement Keys)
+    jmp Check_Piece
 
-
+;======================================================================================
+    ;This is used to clear valid moves and attacks (Code jumps to "clears")
+    ;when another piece is selected
+    ;====================
+    ;   START CLEARS
+    ;====================
+    clears:
     lea di, ValidMoves
     mov al, '$'
-    G_Lp_ClearMoves:
+    ClearMoves:
         cmp [di],al
-        je done
+        je NoVM ;no valid moves found (Check attacks)
 
         mov ch, [di]
         mov cl, [di+1]
@@ -76,15 +97,19 @@ GameLP:
         mov [di+1], al
 
         add di,2
-        jmp G_Lp_ClearMoves
+        jmp ClearMoves
 
-    done: 
+    ;=====
+    GameLP_mid:jmp GameLP
+    ;=====
 
+    NoVM: 
+    ;Check if valid attacks present
     lea di, ValidAttacks
     mov al, '$'
-    G_Lp_ClearAttacks:
+    ClearAttacks:
         cmp [di],al
-        je done2
+        je HandleDrawing
 
         mov ch, [di]
         mov cl, [di+1]
@@ -95,34 +120,100 @@ GameLP:
         mov [di+1], al
 
         add di,2
-        jmp G_Lp_ClearAttacks
+        jmp ClearAttacks
 
-    done2: 
+    ;======
+    Check_Movement_Keys_mid1: jmp Check_Movement_Keys_mid2 ;Check_Movement_Keys_mid2
+    ;======
+
+    ;Handle previous and current drawing
+    HandleDrawing:
+    mov ch,px
+    mov cl,py
+    DrawSq px,py
+    call RedrawPiece
+    cmp hx,0
+    je GameLP
+    mov ch,hx
+    mov cl,hy
+    call RedrawBoardSq
+    ;=========
+    jmp skip_mid_GL             ;MID JUMPS
+    GameLP_mid1:jmp GameLP_mid  ;Just to go back to GameLP (mid jump)
+    skip_mid_GL:
+    ;=========
+
+    ;Check if clears from not valid attack 
+    ;So, select new piece and get moves
+    cmp CLR,1 
+    jne GameLP_mid ;We did not select a new piece (Go back to GameLP to check key input)
+    ;Note: the clr boolean is set in a label called "Not_Valid_Attack"
+    ;      please check logic to understand more
+
+    ;Get current piece moves 
+    call GetValidMoves
+    call DrawPossibleMoves
+    call DrawPossibleAttacks
+    mov ch,px
+    mov cl,py
+    DrawSq px,py
+    call RedrawPiece
+    mov CLR,0
+    jmp GameLP
+    ;====================
+    ;   END CLEARS
+    ;====================
+;======================================================================================
+    ;Check if selected was a piece
+    Check_Piece:
 
     mov ch,px
     mov cl,py
     call to_idx
     mov bl,'0'
     cmp [di], bl
-    jne select_piece
+    jne select_piece_mid
 
 
-    ; mov dl,'1'
-    ; mov ah,2
-    ; int 21h
-    ; pressed Q on empty square. if a piece is already selected move piece to that square
-    ; if hx == 0 || hy == 0 then no piece selected
+    ; pressed Q on empty square. 
     cmp hx,0
-    je GameLP
+    je GameLP_mid1 ;Pressed on empty square (Go back to GameLP to check key input)
 
     ;=============
     jmp G_L_skip_move_mid
-    G_L_move_mid:
-    jmp move
+    Check_Movement_Keys_mid2:    ;MID JUMPS
+    jmp Check_Movement_Keys_mid3 ;Check_Movement_Keys_mid3
     G_L_skip_move_mid:
     ;=============
+;======================================================================================
+    ;check if valid move
+    mov ch,px
+    mov cl,py
+    lea di,ValidMoves
+    mov al, '$'
+    Check_Valid:
+        cmp [di],al
+        je DeselectPiece
+        cmp ch,[di]
+        jne nextCheck_Valid
+        cmp cl,[di+1]
+        jne nextCheck_Valid
+        jmp Done_ValidMove
 
-    ; if there was some piece previously selected move it 
+        nextCheck_Valid:
+        add di,2
+        jmp Check_Valid
+
+    ;==========
+    select_piece_mid:jmp select_piece ;MID JUMPS
+    ;==========
+
+
+    Done_ValidMove:
+    ;yes it is a valid move
+    mov ch,px
+    mov cl,py
+    call to_idx
     mov bx,di ; bx is the empty square position in chessboard array 
     mov ch, hx
     mov cl, hy
@@ -138,85 +229,132 @@ GameLP:
     mov [bx], cl
     mov [di], ah  
     
-
- ;call ClearValidMoves
-    ; lea si, ValidMoves
-    ; mov al, '$'
-    ; ; does weird stuff when used as a proc
-    ; C_V_M_remove_excess1:
-    ;     cmp [si],al
-    ;     je C_V_M_move1
-
-    ;     mov ch, [si]
-    ;     mov cl, [si+1]
-    ;     call RedrawBoardSq
-    ;     ;call RedrawPiece
-
-    ;     mov [si], al
-    ;     mov [si + 1], al
-    ;     add si , 2
-    ;     jmp C_V_M_remove_excess1
-; C_V_M_move1:
-
-    mov ch, px
-    mov cl, py
-    DrawSq px, py
-    call RedrawPiece
-
+    ;Reset select to not selected
     mov hx,0
     mov hy,0
-    
-
-   
-
-    jmp GameLP
-
+    ;Clear Valid moves & Attacks
+    jmp clears
+;======================================================================================
+    ;========
+    Check_Movement_Keys_mid3:jmp Check_Movement_Keys_mid4 ;Check_Movement_Keys_mid4
+    ;========
+;======================================================================================
+    ;General deselects piece in hx:hy
+    DeselectPiece:
+    mov ch, hx
+    mov cl, hy
+    DrawSq px, py
+    call RedrawBoardSq
+    call RedrawPiece
+    mov hx,0
+    mov hy,0
+    ;Clear Valid moves & Attacks
+    jmp clears
+;======================================================================================
     ; no piece was previously selected so select current piece
-    ; or another piece is selected
+    ; or another piece is selected (Check Valid Attack)
     select_piece:
-    ; mov dl,'2'
-    ; mov ah,2
-    ; int 21h
+
+    ;Check if selected piece is in Valid Attacks
+    If_Valid_Attack:
+    ;check if valid attack
+    lea di,ValidAttacks
+    mov al, '$'
+    Check_Valid_Attack:
+        cmp [di],al
+        je Not_Valid_Attack_mid
+        cmp ch,[di]
+        jne nextCheck_Attack
+        cmp cl,[di+1]
+        jne nextCheck_Attack
+        jmp Done_Valid_Attack
+
+        nextCheck_Attack:
+        add di,2
+        jmp Check_Valid_Attack
+
+    ;==========
+    Check_Movement_Keys_mid4:jmp move ;Check_Movement_Keys_mid 
+    ;==========
+
+    Done_Valid_Attack:
+    ;put piece in its DeadPiece Array
+    ;Replace piece to place
+    mov ch,px
+    mov cl,py
+    call to_idx
+    mov bl,'W'
+    cmp [di],bl
+    jne kill_Black
+    lea si,W_DeadPiece
+    mov bl,'$'
+    sub si,2
+    lp2:add si,2
+        cmp [si],bl
+        jne lp2
+    mov bh,[di]
+    mov bl,[di+1]
+    mov [si],bh
+    mov [si+1],bl
+    
+    ;Swap and replace new pieces
+    mov bx,di
+    mov ch,hx
+    mov cl,hy
+    call to_idx
+    mov cx,[di]
+    mov [bx],cx
+    mov ax,3030h
+    mov [di],ax
+    ;Clear Valid moves & Attacks
+    jmp clears
+
+    ;=======
+    Not_Valid_Attack_mid:jmp Not_Valid_Attack ;MID JUMPS
+    ;=======
+
+    kill_Black:
+    lea si,B_DeadPiece
+    mov bl,'$'
+    sub si,2
+    lp3:add si,2
+        cmp [si],bl
+        jne lp3
+    mov bh,[di]
+    mov bl,[di+1]
+    mov [si],bh
+    mov [si+1],bl
+    ;Swap and replace new pieces
+    mov bx,di
+    mov ch,hx
+    mov cl,hy
+    call to_idx
+    mov cx,[di]
+    mov [bx],cx
+    mov ax,3030h
+    mov [di],ax
+    ;Clear Valid moves & Attacks
+    jmp clears
+
+    ;Person Selected Piece that is not valid for attack
+    ;So, this means we need to select current piece
+    Not_Valid_Attack:
     ; remove prev highlighted piece background
     mov ch, hx
     mov cl, hy
     call RedrawBoardSq
     call RedrawPiece
     
-    ;call ClearValidMoves
-    ; lea si, ValidMoves
-    ; mov al, '$'
-    ; does weird stuff when used as a proc
-    ; C_V_M_remove_excess:
-    ;     cmp [si],al
-    ;     je C_V_M_move
-
-
-    ;     mov ch, [si]
-    ;     mov cl, [si+1]
-    ;     call RedrawBoardSq
-    ;     ;call RedrawPiece
-
-
-    ;     mov [si], al
-    ;     mov [si + 1], al
-    ;     add si , 2
-    ;     jmp C_V_M_remove_excess
-    ; C_V_M_move:
-
     mov ch, px
     mov cl, py
 
     mov hx, ch
     mov hy, cl
-
-  
-    call GetValidMoves
-    call DrawPossibleMoves
-    call DrawPossibleAttacks
-
-
-    jmp GameLP
+    ;Clear Valid moves & Attacks
+    mov CLR,1 ;Set CLR boolean to indicate (Get current piece moves in "clears")
+    jmp clears
+;======================================================================================
+    
 GameLPmid:
 jmp GameLP
 
@@ -724,13 +862,31 @@ Moves_bishop PROC ; load si with valid moves
     ret
 Moves_bishop ENDP
 
-
-;description
-ClearValidMoves PROC
+;TODO:GET PAWN MOVES
+Moves_pawn PROC
     pusha
 
 
     popa
     ret
-ClearValidMoves ENDP
+Moves_pawn ENDP
+
+;TODO: GET KNIGHT MOVES
+Moves_knight PROC
+    pusha
+
+
+    popa
+    ret
+Moves_knight ENDP
+
+;TODO: GET KING MOVES
+Moves_king PROC
+    pusha
+
+
+    popa
+    ret
+Moves_king ENDP
+
 END MAIN
