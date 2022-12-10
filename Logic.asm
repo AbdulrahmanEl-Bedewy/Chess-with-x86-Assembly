@@ -546,7 +546,7 @@ GetValidMoves PROC
     popa
     ret
     ppw:        ;possible moves for pawn
-
+    call Moves_pawn
     popa
     ret
 GetValidMoves ENDP
@@ -865,8 +865,132 @@ Moves_bishop ENDP
 ;TODO:GET PAWN MOVES
 Moves_pawn PROC
     pusha
+    lea bx, ValidMoves
+    mov al, 'W'
+    cmp [di], al
+    jne BPwn_Moves
+    cmp cl, 7
+    je W_First_Move
+    cmp cl,1 ;=> any subsequent dec cl wouldnt give 0
+    jne Has_Moves
+    popa 
+    ret
+    Has_Moves:
+    sub di,16
+    dec cl
+    mov al,'0'
+    cmp [di], al
+    jne W_Check_Attacks
+    mov [bx], ch
+    mov [bx + 1], cl 
+    jmp W_Check_Attacks
 
+    W_First_Move:
+    sub di,16
+    dec cl 
+    mov al,'0'
+    cmp [di], al
+    jne W_Check_Attacks
+    mov [bx], ch
+    mov [bx + 1], cl 
+    add bx,2
+    sub di,16
+    cmp [di], al
+    jne W_Before_Check_Attacks
+    dec cl
+    mov [bx], ch
+    mov [bx + 1], cl 
+    W_Before_Check_Attacks:
+    inc cl
+    add di,16
 
+    W_Check_Attacks:
+    lea bx,ValidAttacks
+    mov al,'B'
+    add di,2
+    inc ch
+    cmp ch,9
+    je MP_skip1
+    cmp [di], al
+    jne MP_skip1
+    mov [bx], ch
+    mov [bx + 1], cl 
+    add bx,2
+    MP_skip1:
+    mov al,'B'
+    sub ch,2
+    cmp ch,0
+    je MP_end_mid
+    sub di, 4
+    cmp [di], al
+    jne MP_end_mid
+    mov [bx], ch
+    mov [bx + 1], cl 
+    jmp MP_end_mid
+
+    BPwn_Moves:
+    cmp cl, 2
+    je B_First_Move
+    cmp cl,8
+    jne Has_Moves_B
+    popa 
+    ret
+    Has_Moves_B:
+    add di,16
+    inc cl
+    mov al,'0'
+    cmp [di], al
+    jne B_Check_Attacks
+    mov [bx], ch
+    mov [bx + 1], cl 
+    jmp B_Check_Attacks
+
+    MP_end_mid:
+    jmp MP_end
+
+    B_First_Move:
+    add di,16
+    inc cl 
+    mov al,'0'
+    cmp [di], al
+    jne B_Check_Attacks
+    mov [bx], ch
+    mov [bx + 1], cl 
+    add bx,2
+    add di,16
+    cmp [di], al
+    jne B_Before_Check_Attacks
+    inc cl
+    mov [bx], ch
+    mov [bx + 1], cl 
+    B_Before_Check_Attacks:
+    dec cl
+    sub di,16
+
+    B_Check_Attacks:
+    lea bx,ValidAttacks
+    mov al,'W'
+    add di,2
+    inc ch
+    cmp ch,9
+    je MP_skip2
+    cmp [di], al
+    jne MP_skip2
+    mov [bx], ch
+    mov [bx + 1], cl 
+    add bx,2
+    MP_skip2:
+    mov al,'W'
+    sub ch,2
+    cmp ch,0
+    je MP_end
+    sub di, 4
+    cmp [di], al
+    jne MP_end
+    mov [bx], ch
+    mov [bx + 1], cl 
+
+    MP_end:
     popa
     ret
 Moves_pawn ENDP
