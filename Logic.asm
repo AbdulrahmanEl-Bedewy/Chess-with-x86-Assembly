@@ -59,11 +59,17 @@ GameLP:
     cmp al,'q'
     jne G_L_move_mid
 
+    mov ch,px
+    mov cl,py
     call to_idx
     mov bl,'0'
     cmp [di], bl
     jne select_piece
 
+
+    mov dl,'1'
+    mov ah,2
+    int 21h
     ; pressed Q on empty square. if a piece is already selected move piece to that square
     ; if hx == 0 || hy == 0 then no piece selected
     cmp hx,0
@@ -126,6 +132,9 @@ GameLP:
     ; no piece was previously selected so select current piece
     ; or another piece is selected
     select_piece:
+    mov dl,'2'
+    mov ah,2
+    int 21h
     ; remove prev highlighted piece background
     mov ch, hx
     mov cl, hy
@@ -299,7 +308,14 @@ to_px ENDP
 ; need position in (CX) x:y => ch:cl
 GetValidMoves PROC
     pusha
+
+    mov dl,'3'
+    mov ah,2
+    int 21h
+
+
     call to_idx
+    lea si, ValidMoves
     mov bl, '0'
     cmp [di+1],bl
     je pr
@@ -320,11 +336,14 @@ GetValidMoves PROC
     je ppw
 
     pr:         ;possible moves for rook
+    mov dl,'4'
+    mov ah,2
+    int 21h
     call Moves_rook
     popa
     ret
     pkt:        ;possible moves for knight
-    call Moves_rook
+    ;call Moves_rook
     popa
     ret
     pb:         ;possible moves for bishop
@@ -337,7 +356,7 @@ GetValidMoves PROC
     ret
     pq:         ;possible moves for queen
     call Moves_rook
-    ;call Moves_bishop
+    call Moves_bishop
     popa
     ret
     ppw:        ;possible moves for pawn
@@ -347,12 +366,19 @@ GetValidMoves PROC
 GetValidMoves ENDP
 
 ;DI has idx
-Moves_rook PROC
+Moves_rook PROC ; lea si with valid moves array
+    ;pusha
+    mov dl,'5'
+    mov ah,2
+    int 21h
+
+
+    mov dx,0
     mov bx,di
     add bx,2
     mov al,'0'
     mov ah, ch
-    lea si,ValidMoves ;=========>> el index bta3y sabt ba7arako kol ma ala2y valid square
+   ; lea si,ValidMoves ;=========>> el index bta3y sabt ba7arako kol ma ala2y valid square
     M_R_Check_Row_right:
         inc ah
         cmp ah, 9
@@ -370,10 +396,11 @@ Moves_rook PROC
         cmp [bx], al
         je M_R_Next1
         lea bx,ValidAttacks
+        add bx,dx
         mov [bx], ah
         mov [bx+1], cl
-        add bx,2
-        push bx ;============= 1 push 
+        add dx,2
+        ;push bx ;============= 1 push 
 
     M_R_Next1:
     ;initializations
@@ -397,11 +424,13 @@ Moves_rook PROC
         mov al, [di]
         cmp [bx], al
         je M_R_Next2 ;move rook end
-        pop bx ;=========================== 1 pop
+        ;pop bx ;=========================== 1 pop
+        lea bx,ValidAttacks
+        add bx,dx
         mov [bx], ah
         mov [bx+1], cl
-        add bx,2
-        push bx ;======================== 1 push
+        add dx,2
+     ;   push bx ;======================== 1 push
          
 
 
@@ -428,11 +457,13 @@ Moves_rook PROC
         mov al, [di]
         cmp [bx], al
         je M_R_Next3 ;move rook end
-        pop bx ;=========================== 1 pop
+        ;pop bx ;=========================== 1 pop
+        lea bx,ValidAttacks
+        add bx,dx
         mov [bx], ch
         mov [bx+1], ah
-        add bx,2
-        push bx ;======================== 1 push
+        add dx,2
+        ;push bx ;======================== 1 push
 
     M_R_Next3:
     ;initializations
@@ -456,35 +487,44 @@ Moves_rook PROC
         mov al, [di]
         cmp [bx], al
         je M_R_Finalize ;move rook end
-        pop bx ;=========================== 1 pop
+        ;pop bx ;=========================== 1 pop
+        lea bx,ValidAttacks
+        add bx,dx
         mov [bx], ch
         mov [bx+1], ah
-        add bx,2
+        add dx,2
         ;push bx ;======================== 1 push
 
     M_R_Finalize:
-    lea bx, ValidMoves
-    add bx, 40 ; last memory loction in Validmoves array
-    mov al, '$'
-    M_R_remove_excess:
-        cmp si,bx
-        je M_R_end
-        cmp [si],al
-        je M_R_end
-        mov [si], al
-        inc si
-        jmp M_R_remove_excess
-    M_R_end:
+    ; lea bx, ValidMoves
+    ; add bx, 40 ; last memory loction in Validmoves array
+    ; mov al, '$'
+    ; M_R_remove_excess:
+    ;     cmp si,bx
+    ;     je M_R_end
+    ;     cmp [si],al
+    ;     je M_R_end
+    ;     mov [si], al
+    ;     inc si
+    ;     jmp M_R_remove_excess
+    ; M_R_end:
+    ;popa
     ret
 Moves_rook ENDP
 
 ;DI has idx
-Moves_bishop PROC 
+Moves_bishop PROC ; load si with valid moves
+    ;pusha
+    mov dl,'6'
+    mov ah,2
+    int 21h
+
+    mov dl,0
     mov bx,di
     sub bx, 14
-    mov dl,'0'
+    mov dh,'0'
     mov ax, cx
-    lea si,ValidMoves ;=========>> el index bta3y sabt ba7arako kol ma ala2y valid square
+    ;lea si,ValidMoves ;=========>> el index bta3y sabt ba7arako kol ma ala2y valid square
     M_B_Check_Diag_right_up:
         inc ah
         dec al
@@ -492,7 +532,7 @@ Moves_bishop PROC
         je M_B_Next1
         cmp al, 0
         je M_B_Next1
-        cmp [bx], dl
+        cmp [bx], dh
         jne M_B_Found_piece1
         mov [si], ah
         mov [si+1], al
@@ -501,20 +541,22 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_right_up
 
     M_B_Found_piece1:
-        mov dl, [di]
-        cmp [bx], dl
+        mov dh, [di]
+        cmp [bx], dh
         je M_B_Next1
         lea bx,ValidAttacks
+        mov dh,0
+        add bx,dx
         mov [bx], ah
         mov [bx+1], al
-        add bx,2
-        push bx ;============= 1 push 
+        add dl,2
+       ; push bx ;============= 1 push 
 
     M_B_Next1:
     ;initializations
     mov bx,di
     sub bx, 18
-    mov dl,'0'
+    mov dh,'0'
     mov ax, cx
     M_B_Check_Diag_left_up:
         dec ah
@@ -523,7 +565,7 @@ Moves_bishop PROC
         je M_B_Next2
         cmp al, 0
         je M_B_Next2
-        cmp [bx], dl
+        cmp [bx], dh
         jne M_B_Found_piece2
         mov [si], ah
         mov [si+1], al
@@ -532,14 +574,17 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_left_up
 
     M_B_Found_piece2:
-        mov dl, [di]
-        cmp [bx], dl
+        mov dh, [di]
+        cmp [bx], dh
         je M_B_Next2 ;move rook end
-        pop bx ;=========================== 1 pop
+        ;pop bx ;=========================== 1 pop
+        lea bx,ValidAttacks
+        mov dh,0
+        add bx,dx
         mov [bx], ah
         mov [bx+1], al
-        add bx,2
-        push bx ;======================== 1 push
+        add dl,2
+        ;push bx ;======================== 1 push
          
 
 
@@ -548,7 +593,7 @@ Moves_bishop PROC
     ;initializations
     mov bx,di
     ADD bx, 18
-    mov dl,'0'
+    mov dh,'0'
     mov ax, cx
     M_B_Check_Diag_right_down:
         inc ah
@@ -557,7 +602,7 @@ Moves_bishop PROC
         je M_B_Next3
         cmp al, 9
         je M_B_Next3
-        cmp [bx], dl
+        cmp [bx], dh
         jne M_B_Found_piece3
         mov [si], ah
         mov [si+1], al 
@@ -566,20 +611,23 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_right_down
 
     M_B_Found_piece3:
-        mov dl, [di]
-        cmp [bx], dl
+        mov dh, [di]
+        cmp [bx], dh
         je M_B_Next3 ;move rook end
-        pop bx ;=========================== 1 pop
+        ;pop bx ;=========================== 1 pop
+        lea bx,ValidAttacks
+        mov dh,0
+        add bx,dx
         mov [bx], ah
         mov [bx+1], al
-        add bx,2
-        push bx ;======================== 1 push
+        add dl,2
+        ;push bx ;======================== 1 push
 
     M_B_Next3:
     ;initializations
     mov bx,di
     add bx, 14
-    mov dl,'0'
+    mov dh,'0'
     mov ax, cx
     M_B_Check_Diag_left_down:
         dec ah
@@ -588,7 +636,7 @@ Moves_bishop PROC
         je M_B_Finalize
         cmp al, 9
         je M_B_Finalize
-        cmp [bx], dl
+        cmp [bx], dh
         jne M_B_Found_piece4
         mov [si], ah
         mov [si+1], al 
@@ -597,28 +645,32 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_left_down
 
     M_B_Found_piece4:
-        mov dl, [di]
-        cmp [bx], dl
+        mov dh, [di]
+        cmp [bx], dh
         je M_B_Finalize ;move rook end
-        pop bx ;=========================== 1 pop
+        ;pop bx ;=========================== 1 pop
+        lea bx,ValidAttacks
+        mov dh,0
+        add bx,dx
         mov [bx], ah
         mov [bx+1], al
-        add bx,2
+        add dl,2
         ;push bx ;======================== 1 push
 
-    M_B_Finalize:
-    lea bx, ValidMoves
-    add bx, 40 ; last memory loction in Validmoves array
-    mov al, '$'
-    M_B_remove_excess:
-        cmp si,bx
-        je M_B_end
-        cmp [si],al
-        je M_B_end
-        mov [si], al
-        inc si
-        jmp M_B_remove_excess
-    M_B_end:
+     M_B_Finalize:
+    ; lea bx, ValidMoves
+    ; add bx, 40 ; last memory loction in Validmoves array
+    ; mov al, '$'
+    ; M_B_remove_excess:
+    ;     cmp si,bx
+    ;     je M_B_end
+    ;     cmp [si],al
+    ;     je M_B_end
+    ;     mov [si], al
+    ;     inc si
+    ;     jmp M_B_remove_excess
+    ; M_B_end:
+    ;popa
     ret
 Moves_bishop ENDP
 
