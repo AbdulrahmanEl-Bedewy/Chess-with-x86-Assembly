@@ -348,10 +348,10 @@ RedrawPiece PROC
     je bb
     inc bl
     cmp [di],bl
-    je bk
+    je bq
     inc bl
     cmp [di], bl
-    je bq
+    je bk
     inc bl
     cmp [di],bl
     je bpw
@@ -370,10 +370,10 @@ RedrawPiece PROC
     je wb
     inc bl
     cmp [di],bl
-    je wk
+    je wq
     inc bl
     cmp [di], bl
-    je wq
+    je wk
     inc bl
     cmp [di],bl
     je wpw
