@@ -141,7 +141,8 @@ Read_Limited_Input proc ; Cx ->  max number of characters to read
         int 21h 
         
         dec Bx 
-        mov [Bx], '$'
+        mov al,'$'
+        mov [Bx], al
         inc cx
         cmp cx , 15
         jz First_Letter

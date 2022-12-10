@@ -7,10 +7,13 @@ Public RedrawBoardSq
 Public RedrawPiece
 Public DrawPossibleMoves
 Public DrawPossibleAttacks
+Public DrawDeadP
 EXTRN to_idx:FAR
 EXTRN chessBoard:byte
 EXTRN ValidMoves:byte
 EXTRN ValidAttacks:byte
+EXTRN B_DeadPiece:byte
+EXTRN W_DeadPiece:byte
 include Macro.inc
 .286
 .Model Small
@@ -101,6 +104,33 @@ Init PROC
     MOV AL, 13h
     INT 10h
 
+    ;Background of Chessboard
+    mov Di, 0
+    mov Bl, 200
+    mov ax,0A000h
+    mov es,ax
+    sidebar1:  ; draw 1 square
+        mov al,14h
+        mov cx,60d
+        rep STOSB
+        SUB DI,60d
+        ADD DI,320D
+        DEC BL
+    JNZ sidebar1
+
+    mov Di, 320-60
+    mov Bl, 200
+    mov ax,0A000h
+    mov es,ax
+    sidebar2:  ; draw 1 square
+        mov al,14h
+        mov cx,60d
+        rep STOSB
+        SUB DI,60d
+        ADD DI,320D
+        DEC BL
+    JNZ sidebar2
+
     LoadImage BoardFilename, 198, BoardData
     LoadImage b_rookFilename, 20, b_rookData
     LoadImage w_rookFilename, 20, w_rookData
@@ -115,45 +145,46 @@ Init PROC
     LoadImage b_pawnFilename, 20, b_pawnData
     LoadImage w_pawnFilename, 20, w_pawnData
 
-    
     call DrawBoard
 
-   DrawP b_rookData,     1, 1 ;BL contains index at the current drawn pixel	
-   DrawP b_knightData,   2, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_bishopData,   3, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_queenData,    4, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_kingData,     5, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_bishopData,   6, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_knightData,   7, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_rookData,     8, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     1, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     2, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     3, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     4, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     5, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     6, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     7, 2 ; BL contains index at the current drawn pixel	
-   DrawP b_pawnData,     8, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_rookData,     1, 1 ;BL contains index at the current drawn pixel	
+    DrawP b_knightData,   2, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_bishopData,   3, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_queenData,    4, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_kingData,     5, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_bishopData,   6, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_knightData,   7, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_rookData,     8, 1 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     1, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     2, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     3, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     4, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     5, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     6, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     7, 2 ; BL contains index at the current drawn pixel	
+    DrawP b_pawnData,     8, 2 ; BL contains index at the current drawn pixel	
 
 
-   DrawP w_rookData,     1, 8 ;BL contains index at the current drawn pixel	
-   DrawP w_knightData,   2, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_bishopData,   3, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_queenData,    4, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_kingData,     5, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_bishopData,   6, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_knightData,   7, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_rookData,     8, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     1, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     2, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     3, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     4, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     5, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     6, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     7, 7 ; BL contains index at the current drawn pixel	
-   DrawP w_pawnData,     8, 7 ; BL contains index at the current drawn pixel			
+    DrawP w_rookData,     1, 8 ;BL contains index at the current drawn pixel	
+    DrawP w_knightData,   2, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_bishopData,   3, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_queenData,    4, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_kingData,     5, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_bishopData,   6, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_knightData,   7, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_rookData,     8, 8 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     1, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     2, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     3, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     4, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     5, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     6, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     7, 7 ; BL contains index at the current drawn pixel	
+    DrawP w_pawnData,     8, 7 ; BL contains index at the current drawn pixel			
   
-  popa
+    
+
+    popa
     ret
 Init ENDP
 
@@ -328,86 +359,12 @@ RedrawPiece PROC
     add di,ax
 
 
-    
     mov bl,'0'
     cmp [di],bl
-    je nopiece_mid
-
-    mov bl,'B'
-    cmp [di],bl
-    ja White
-    inc di
-    mov bl,'0'
-    cmp [di],bl
-    je br
-    inc bl
-    cmp [di],bl
-    je bkt
-    inc bl
-    cmp [di],bl
-    je bb
-    inc bl
-    cmp [di],bl
-    je bq
-    inc bl
-    cmp [di], bl
-    je bk
-    inc bl
-    cmp [di],bl
-    je bpw
-    nopiece_mid:jmp nopiece
-
-    White:
-    inc di
-    mov bl,'0'
-    cmp [di],bl
-    je wr
-    inc bl
-    cmp [di],bl
-    je wkt
-    inc bl
-    cmp [di],bl
-    je wb
-    inc bl
-    cmp [di],bl
-    je wq
-    inc bl
-    cmp [di], bl
-    je wk
-    inc bl
-    cmp [di],bl
-    je wpw
-
-    jmp nopiece ;error handling
-
-    br: lea bx,b_rookData
-    jmp onepiece
-    bkt:lea bx,b_knightData
-    jmp onepiece
-    bb:lea bx,b_bishopData
-    jmp onepiece
-    bk:lea bx,b_kingData
-    jmp onepiece
-    bq:lea bx,b_queenData
-    jmp onepiece
-    wr:lea bx,w_rookData
-    jmp onepiece
-    wkt:lea bx,w_knightData
-    jmp onepiece
-    wb:lea bx,w_bishopData
-    jmp onepiece
-    wk:lea bx,w_kingData
-    jmp onepiece
-    wq:lea bx,w_queenData
-    jmp onepiece
-    bpw:lea bx,b_pawnData
-    jmp onepiece
-    wpw:lea bx,w_pawnData
-
-    onepiece:
+    je nopiece
     inc cl
     inc ch
-    call DrawPiece
+    call DrawRightPiece
 
     ;no piece
     nopiece: 
@@ -527,6 +484,144 @@ CloseFile PROC
 	INT 21h
 	RET
 CloseFile ENDP
+
+DrawDeadP PROC
+    pusha
+    lea di,B_DeadPiece
+    mov al,'$'
+    
+    mov ch,-2
+    mov cl,0
+    lp4:
+        cmp cl,8
+        je n1
+        cmp [di],al
+        je drawW
+        call DrawRightPiece
+        inc cl
+        add di,2
+        jmp lp4
+    n1:mov ch,-1
+    mov cl,0
+    lp5:
+        cmp cl,8
+        je drawW
+        cmp [di],al
+        je drawW
+        call DrawRightPiece
+        inc cl
+        add di,2
+        jmp lp5
+    ;White
+    drawW:
+    lea di,W_DeadPiece
+    mov ch,11d
+    mov cl,0
+    lp6:
+        cmp cl,8
+        je n2
+        cmp [di],al
+        je done
+        inc cl
+        call DrawRightPiece
+        add di,2
+        jmp lp6
+    n2:dec ch
+    mov cl,1
+    lp7:
+        cmp cl,9
+        je done
+        cmp [di],al
+        je done
+        call DrawRightPiece
+        inc cl
+        add di,2
+        jmp lp7
+    done:
+    popa
+    ret
+DrawDeadP ENDP
+
+;takes el piece symbols in di & position in CX
+DrawRightPiece PROC
+    pusha
+    mov bl,'B'
+    cmp [di],bl
+    ja White
+    inc di
+    mov bl,'0'
+    cmp [di],bl
+    je br
+    inc bl
+    cmp [di],bl
+    je bkt
+    inc bl
+    cmp [di],bl
+    je bb
+    inc bl
+    cmp [di],bl
+    je bq
+    inc bl
+    cmp [di], bl
+    je bk
+    inc bl
+    cmp [di],bl
+    je bpw
+    
+
+    White:
+    inc di
+    mov bl,'0'
+    cmp [di],bl
+    je wr
+    inc bl
+    cmp [di],bl
+    je wkt
+    inc bl
+    cmp [di],bl
+    je wb
+    inc bl
+    cmp [di],bl
+    je wq
+    inc bl
+    cmp [di], bl
+    je wk
+    inc bl
+    cmp [di],bl
+    je wpw
+
+    jmp nopiece1
+    br: lea bx,b_rookData
+    jmp onepiece
+    bkt:lea bx,b_knightData
+    jmp onepiece
+    bb:lea bx,b_bishopData
+    jmp onepiece
+    bk:lea bx,b_kingData
+    jmp onepiece
+    bq:lea bx,b_queenData
+    jmp onepiece
+    wr:lea bx,w_rookData
+    jmp onepiece
+    wkt:lea bx,w_knightData
+    jmp onepiece
+    wb:lea bx,w_bishopData
+    jmp onepiece
+    wk:lea bx,w_kingData
+    jmp onepiece
+    wq:lea bx,w_queenData
+    jmp onepiece
+    bpw:lea bx,b_pawnData
+    jmp onepiece
+    wpw:lea bx,w_pawnData
+
+    onepiece:
+    call DrawPiece
+    nopiece1:
+    popa 
+    ret
+DrawRightPiece ENDP
+
 
 END
 ;END MAIN

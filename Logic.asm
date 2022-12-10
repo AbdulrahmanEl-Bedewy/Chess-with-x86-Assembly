@@ -7,11 +7,14 @@ EXTRN RedrawBoardSq:FAR
 EXTRN RedrawPiece:FAR
 EXTRN DrawPossibleMoves:FAR
 EXTRN DrawPossibleAttacks:FAR
+EXTRN DrawDeadP:FAR
 ;EXTRN Moves_bishop:FAR
 Public to_idx
 Public chessBoard
 Public ValidMoves
 Public ValidAttacks
+Public B_DeadPiece
+Public W_DeadPiece
 include Macro.inc
 .286
 .Model small
@@ -306,6 +309,7 @@ GameLP:
     mov [bx],cx
     mov ax,3030h
     mov [di],ax
+    call DrawDeadP ;Add dead piece
     ;Clear Valid moves & Attacks
     jmp clears
 
@@ -333,6 +337,7 @@ GameLP:
     mov [bx],cx
     mov ax,3030h
     mov [di],ax
+    call DrawDeadP ;Add dead piece
     ;Clear Valid moves & Attacks
     jmp clears
 
