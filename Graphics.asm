@@ -5,8 +5,10 @@ Public DrawPieces
 Public DrawBoard
 Public RedrawBoardSq
 Public RedrawPiece
+Public DrawPossibleMoves
 EXTRN to_idx:FAR
 EXTRN chessBoard:byte
+EXTRN ValidMoves:byte
 include Macro.inc
 .286
 .Model Small
@@ -51,10 +53,10 @@ B_knight db "B1"
 W_knight db "W1"
 B_bishop db "B2"
 W_bishop db "W2"
-B_queen db "B3"
-W_queen db "W3"
-B_king db "B4"
-W_king db "W4"
+B_king db "B3"
+W_king db "W3"
+B_queen db "B4"
+W_queen db "W4"
 B_pawn db "B5"
 W_pawn db "W5"
 
@@ -117,8 +119,8 @@ Init PROC
    DrawP b_rookData,     1, 1 ;BL contains index at the current drawn pixel	
    DrawP b_knightData,   2, 1 ; BL contains index at the current drawn pixel	
    DrawP b_bishopData,   3, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_queenData,    4, 1 ; BL contains index at the current drawn pixel	
-   DrawP b_kingData,     5, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_kingData,     4, 1 ; BL contains index at the current drawn pixel	
+   DrawP b_queenData,    5, 1 ; BL contains index at the current drawn pixel	
    DrawP b_bishopData,   6, 1 ; BL contains index at the current drawn pixel	
    DrawP b_knightData,   7, 1 ; BL contains index at the current drawn pixel	
    DrawP b_rookData,     8, 1 ; BL contains index at the current drawn pixel	
@@ -135,8 +137,8 @@ Init PROC
    DrawP w_rookData,     1, 8 ;BL contains index at the current drawn pixel	
    DrawP w_knightData,   2, 8 ; BL contains index at the current drawn pixel	
    DrawP w_bishopData,   3, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_queenData,    4, 8 ; BL contains index at the current drawn pixel	
-   DrawP w_kingData,     5, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_kingData,     4, 8 ; BL contains index at the current drawn pixel	
+   DrawP w_queenData,    5, 8 ; BL contains index at the current drawn pixel	
    DrawP w_bishopData,   6, 8 ; BL contains index at the current drawn pixel	
    DrawP w_knightData,   7, 8 ; BL contains index at the current drawn pixel	
    DrawP w_rookData,     8, 8 ; BL contains index at the current drawn pixel	
@@ -340,10 +342,10 @@ RedrawPiece PROC
     je bb
     inc bl
     cmp [di],bl
-    je bq
+    je bk
     inc bl
     cmp [di], bl
-    je bk
+    je bq
     inc bl
     cmp [di],bl
     je bpw
@@ -362,10 +364,10 @@ RedrawPiece PROC
     je wb
     inc bl
     cmp [di],bl
-    je wq
+    je wk
     inc bl
     cmp [di], bl
-    je wk
+    je wq
     inc bl
     cmp [di],bl
     je wpw
@@ -467,6 +469,24 @@ ReadData PROC ; load file size in cx
     RET
 ReadData ENDP 
 
+;description
+DrawPossibleMoves PROC
+    pusha
+    lea di, ValidMoves
+    mov cl, '$'
+    DPM_Draw:
+        cmp [di], cl
+        je DPM_end
+        mov bl,[di]
+        mov al,[di+1]
+        call DrawSquare
+        add di, 2
+        jmp DPM_Draw
+
+    DPM_end:
+    popa
+    ret
+DrawPossibleMoves ENDP
 
 CloseFile PROC 
 	MOV AH, 3Eh

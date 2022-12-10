@@ -1,0 +1,10 @@
+
+ Start  Stop   Length Name               Class
+
+ 00000H 00340H 00341H _TEXT              CODE
+ 00350H 0043BH 000ECH _DATA              DATA
+ 00440H 0053FH 00100H STACK              STACK
+
+Error: Undefined symbol REDRAWBOARDSQ in module D:\LOGIC.ASM
+Program entry point at 0000:0000
+

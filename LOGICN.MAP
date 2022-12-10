@@ -1,0 +1,14 @@
+
+ Start  Stop   Length Name               Class
+
+ 00000H 003B5H 003B6H _TEXT              CODE
+ 003C0H 004ABH 000ECH _DATA              DATA
+ 004B0H 005AFH 00100H STACK              STACK
+
+Error: Undefined symbol INIT in module D:\LOGICN.ASM
+Error: Undefined symbol DRAWSQUARE in module D:\LOGICN.ASM
+Error: Undefined symbol REDRAWPIECE in module D:\LOGICN.ASM
+Error: Undefined symbol REDRAWBOARDSQ in module D:\LOGICN.ASM
+Error: Undefined symbol DRAWPOSSIBLEMOVES in module D:\LOGICN.ASM
+Program entry point at 0000:0000
+

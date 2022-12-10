@@ -6,14 +6,12 @@ EXTRN DrawBoard:FAR
 EXTRN RedrawBoardSq:FAR
 EXTRN RedrawPiece:FAR
 EXTRN DrawPossibleMoves:FAR
-;EXTRN Moves_bishop:FAR
 Public to_idx
 Public chessBoard
 Public ValidMoves
-Public ValidAttacks
 include Macro.inc
 .286
-.Model small
+.Model Small
 .Stack 100h
 .Data
 
@@ -57,8 +55,29 @@ GameLP:
     int 16h    
     ;select key
     cmp al,'q'
-    jne G_L_move_mid
+    jne G_Lp_move_mid
 
+    pusha
+    lea di, ValidMoves
+    mov al, '$'
+    G_Lp_ClearMoves:
+        cmp [di],al
+        je done
+
+        mov ch, [di]
+        mov cl, [di+1]
+        call RedrawBoardSq
+
+        mov [di], al
+        mov [di+1], al
+
+        add di,2
+        jmp G_Lp_ClearMoves
+
+    done: popa
+
+    mov ch,px
+    mov cl,py
     call to_idx
     mov bl,'0'
     cmp [di], bl
@@ -69,12 +88,16 @@ GameLP:
     cmp hx,0
     je GameLP
 
+    mov dl,'N'
+    mov ah,2
+    int 21h
+
     ; if there was some piece previously selected move it 
     mov bx,di ; bx is the empty square position in chessboard array 
     mov ch, hx
     mov cl, hy
     call RedrawBoardSq
-    call to_idx ; di is the previously selected piece's position in chessboard array
+    call to_idx ; di is the previously selected piece position in chessboard array
     mov cl, [di]
     mov [bx], cl
     mov ah, '0'
@@ -84,44 +107,21 @@ GameLP:
     mov cl, [di]
     mov [bx], cl
     mov [di], ah  
-    
-
-     ;call ClearValidMoves
-    lea si, ValidMoves
-    mov al, '$'
-    ; does weird stuff when used as a proc
-    C_V_M_remove_excess1:
-        cmp [si],al
-        je C_V_M_move1
-
-        mov ch, [si]
-        mov cl, [si+1]
-        call RedrawBoardSq
-        ;call RedrawPiece
-
-        mov [si], al
-        mov [si + 1], al
-        add si , 2
-        jmp C_V_M_remove_excess1
-    C_V_M_move1:
 
     mov ch, px
     mov cl, py
     call RedrawPiece
-
+   
     mov hx,0
     mov hy,0
-    
-    ;=============
-    jmp G_L_skip_move_mid
-    G_L_move_mid:
-    jmp move
-    G_L_skip_move_mid:
-    ;=============
-
-   
 
     jmp GameLP
+    
+    ;==================
+    G_Lp_move_mid:
+    jmp move
+    ;==================
+
 
     ; no piece was previously selected so select current piece
     ; or another piece is selected
@@ -131,27 +131,6 @@ GameLP:
     mov cl, hy
     call RedrawBoardSq
     call RedrawPiece
-    
-    ;call ClearValidMoves
-    lea si, ValidMoves
-    mov al, '$'
-    ; does weird stuff when used as a proc
-    C_V_M_remove_excess:
-        cmp [si],al
-        je C_V_M_move
-
-
-        mov ch, [si]
-        mov cl, [si+1]
-        call RedrawBoardSq
-        ;call RedrawPiece
-
-
-        mov [si], al
-        mov [si + 1], al
-        add si , 2
-        jmp C_V_M_remove_excess
-    C_V_M_move:
 
     mov ch, px
     mov cl, py
@@ -159,10 +138,18 @@ GameLP:
     mov hx, ch
     mov hy, cl
 
-  
+    ; cmp hx,0
+    ; je skip
+    ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+    DrawSq hx, hy
+   ; mov ch, hx
+    ;mov cl, hy
+    call RedrawPiece
+    ;skip:
+
+    ;call to_idx
     call GetValidMoves
     call DrawPossibleMoves
-
 
     jmp GameLP
 GameLPmid:
@@ -184,6 +171,7 @@ move:
     cmp al,'s'
     je down
     jmp GameLP
+
     Right:
     cmp px,8
     je GameLPmid
@@ -224,6 +212,9 @@ move:
     mov cl, hy
     call RedrawPiece
     skip:
+
+
+    
     mov ch,px
     mov cl,py
     call RedrawPiece
@@ -299,6 +290,13 @@ to_px ENDP
 ; need position in (CX) x:y => ch:cl
 GetValidMoves PROC
     pusha
+    mov dl,[di]
+    mov ah,2
+    int 21h
+    mov dl,[di+1]
+    mov ah,2
+    int 21h
+
     call to_idx
     mov bl, '0'
     cmp [di+1],bl
@@ -311,14 +309,17 @@ GetValidMoves PROC
     je pb
     inc bl
     cmp [di+1],bl
-    je pk
+    je pq
     inc bl
     cmp [di+1], bl
-    je pq
+    je pk
     inc bl
     cmp [di+1],bl
     je ppw
 
+    popa 
+    ret
+    
     pr:         ;possible moves for rook
     call Moves_rook
     popa
@@ -328,7 +329,7 @@ GetValidMoves PROC
     popa
     ret
     pb:         ;possible moves for bishop
-    call Moves_bishop
+    ;call Moves_bishop
     popa
     ret
     pk:         ;possible moves for king
@@ -348,6 +349,7 @@ GetValidMoves ENDP
 
 ;DI has idx
 Moves_rook PROC
+    pusha
     mov bx,di
     add bx,2
     mov al,'0'
@@ -475,6 +477,7 @@ Moves_rook PROC
         inc si
         jmp M_R_remove_excess
     M_R_end:
+    popa
     ret
 Moves_rook ENDP
 
@@ -501,14 +504,14 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_right_up
 
     M_B_Found_piece1:
-        mov dl, [di]
-        cmp [bx], dl
-        je M_B_Next1
-        lea bx,ValidAttacks
-        mov [bx], ah
-        mov [bx+1], al
-        add bx,2
-        push bx ;============= 1 push 
+        ; mov dl, [di]
+        ; cmp [bx], dl
+        ; je M_B_Next1
+        ; lea bx,ValidAttacks
+        ; mov [bx], ah
+        ; mov [bx+1], al
+        ; add bx,2
+        ; push bx ;============= 1 push 
 
     M_B_Next1:
     ;initializations
@@ -532,14 +535,14 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_left_up
 
     M_B_Found_piece2:
-        mov dl, [di]
-        cmp [bx], dl
-        je M_B_Next2 ;move rook end
-        pop bx ;=========================== 1 pop
-        mov [bx], ah
-        mov [bx+1], al
-        add bx,2
-        push bx ;======================== 1 push
+        ; mov dl, [di]
+        ; cmp [bx], dl
+        ; je M_B_Next2 ;move rook end
+        ; pop bx ;=========================== 1 pop
+        ; mov [bx], ah
+        ; mov [bx+1], al
+        ; add bx,2
+        ; push bx ;======================== 1 push
          
 
 
@@ -566,14 +569,14 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_right_down
 
     M_B_Found_piece3:
-        mov dl, [di]
-        cmp [bx], dl
-        je M_B_Next3 ;move rook end
-        pop bx ;=========================== 1 pop
-        mov [bx], ah
-        mov [bx+1], al
-        add bx,2
-        push bx ;======================== 1 push
+        ; mov dl, [di]
+        ; cmp [bx], dl
+        ; je M_B_Next3 ;move rook end
+        ; pop bx ;=========================== 1 pop
+        ; mov [bx], ah
+        ; mov [bx+1], al
+        ; add bx,2
+        ; push bx ;======================== 1 push
 
     M_B_Next3:
     ;initializations
@@ -597,14 +600,14 @@ Moves_bishop PROC
         jmp M_B_Check_Diag_left_down
 
     M_B_Found_piece4:
-        mov dl, [di]
-        cmp [bx], dl
-        je M_B_Finalize ;move rook end
-        pop bx ;=========================== 1 pop
-        mov [bx], ah
-        mov [bx+1], al
-        add bx,2
-        ;push bx ;======================== 1 push
+        ; mov dl, [di]
+        ; cmp [bx], dl
+        ; je M_B_Finalize ;move rook end
+        ; pop bx ;=========================== 1 pop
+        ; mov [bx], ah
+        ; mov [bx+1], al
+        ; add bx,2
+        ; ;push bx ;======================== 1 push
 
     M_B_Finalize:
     lea bx, ValidMoves
@@ -623,12 +626,5 @@ Moves_bishop PROC
 Moves_bishop ENDP
 
 
-;description
-ClearValidMoves PROC
-    pusha
 
-
-    popa
-    ret
-ClearValidMoves ENDP
 END MAIN
