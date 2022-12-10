@@ -510,10 +510,10 @@ GetValidMoves PROC
     je pb
     inc bl
     cmp [di+1],bl
-    je pk
+    je pq
     inc bl
     cmp [di+1], bl
-    je pq
+    je pk
     inc bl
     cmp [di+1],bl
     je ppw
@@ -527,7 +527,7 @@ GetValidMoves PROC
     popa
     ret
     pkt:        ;possible moves for knight
-    ;call Moves_rook
+    call Moves_knight
     popa
     ret
     pb:         ;possible moves for bishop
@@ -998,8 +998,194 @@ Moves_pawn ENDP
 ;TODO: GET KNIGHT MOVES
 Moves_knight PROC
     pusha
+    lea bx, ValidMoves
+    lea si,ValidAttacks
+    mov al,[di]
+    mov ch,hx
+    mov cl,hy
 
+    ;if up is possible
+    cmp cl,3
+    jb Check_Down
+    cmp ch,8
+    je cont1
+    inc ch
+    sub cl,2
+    call to_idx
+    cmp [di],al
+    je cont1
+    mov ah,'0'
+    cmp [di],ah
+    je addmove1
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp cont1
+    addmove1:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+    jmp cont1
+    cont1:
+    mov ch,hx
+    mov cl,hy
+    cmp ch,1
+    je Check_Down
+    sub cl,2
+    dec ch
+    call to_idx
+    cmp [di],al
+    je Check_Down
+    mov ah,'0'
+    cmp [di],ah
+    je addmove2
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp Check_Down
+    addmove2:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
 
+    Check_Down:
+    mov ch,hx
+    mov cl,hy
+    cmp cl,6
+    ja Check_Right
+    cmp ch,8
+    je cont2
+    inc ch
+    add cl,2
+    call to_idx
+    cmp [di],al
+    je cont2
+    mov ah,'0'
+    cmp [di],ah
+    je addmove3
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp cont2
+    addmove3:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+    jmp cont2
+    cont2:
+    mov ch,hx
+    mov cl,hy
+    cmp ch,1
+    je Check_Right
+    dec ch
+    add cl,2
+    call to_idx
+    cmp [di],al
+    je Check_Right
+    mov ah,'0'
+    cmp [di],ah
+    je addmove4
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp Check_Right
+    addmove4:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+
+    Check_Right:
+    mov ch,hx
+    mov cl,hy
+    cmp ch,6
+    ja Check_Left
+    cmp cl,1
+    je cont3
+    add ch,2
+    dec cl
+    call to_idx
+    cmp [di],al
+    je cont3
+    mov ah,'0'
+    cmp [di],ah
+    je addmove5
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp cont3
+    addmove5:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+    cont3:
+    mov ch,hx
+    mov cl,hy
+    cmp cl,8
+    je Check_Left
+    add ch,2
+    inc cl
+    call to_idx
+    cmp [di],al
+    je Check_Left
+    mov ah,'0'
+    cmp [di],ah
+    je addmove6
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp Check_Left
+    addmove6:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+
+    Check_Left:
+    mov ch,hx
+    mov cl,hy
+    cmp ch,3
+    jb No_Kt
+    cmp cl,1
+    je cont4
+    sub ch,2
+    dec cl
+    call to_idx
+    cmp [di],al
+    je cont4
+    mov ah,'0'
+    cmp [di],ah
+    je addmove7
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp cont4
+    addmove7:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+    cont4:
+    mov ch,hx
+    mov cl,hy
+    cmp cl,8
+    je No_Kt
+    sub ch,2
+    inc cl
+    call to_idx
+    cmp [di],al
+    je No_Kt
+    mov ah,'0'
+    cmp [di],ah
+    je addmove8
+    mov [si],ch
+    mov [si+1],cl
+    add si,2
+    jmp No_Kt
+    addmove8:
+    mov [bx],ch
+    mov [bx+1],cl
+    add bx,2
+    
+    
+    No_Kt:
     popa
     ret
 Moves_knight ENDP
@@ -1007,8 +1193,8 @@ Moves_knight ENDP
 ;TODO: GET KING MOVES
 Moves_king PROC
     pusha
-
-
+    
+    
     popa
     ret
 Moves_king ENDP
