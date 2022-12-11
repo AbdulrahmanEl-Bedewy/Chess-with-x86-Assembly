@@ -48,6 +48,7 @@ hy  db 0
 sq db 20 dup('$')
 
 CLR db 0
+IsKing db ?
 .Code
 
 
@@ -541,11 +542,14 @@ GetValidMoves PROC
     popa
     ret
     pk:         ;possible moves for king
-
+    mov IsKing,1
+    call Moves_rook
+    call Moves_bishop
     popa
     ret
     pq:         ;possible moves for queen
-  ;  mov dx,0
+  ;  mov dx,
+    mov IsKing,0
     call Moves_rook
     call Moves_bishop
     popa
@@ -581,6 +585,8 @@ Moves_rook PROC ; lea si with valid moves array
         mov [si+1], cl
         add si,2
         add bx,2
+        cmp IsKing,1
+        je M_R_Next1
         jmp M_R_Check_Row_right
 
     M_R_Found_piece1:
@@ -592,7 +598,6 @@ Moves_rook PROC ; lea si with valid moves array
         mov [bx], ah
         mov [bx+1], cl
         add dx,2
-        ;push bx ;============= 1 push 
 
     M_R_Next1:
     ;initializations
@@ -610,19 +615,19 @@ Moves_rook PROC ; lea si with valid moves array
         mov [si+1], cl
         add si,2
         sub bx,2
+        cmp IsKing,1
+        je M_R_Next2
         jmp M_R_Check_Row_left
 
     M_R_Found_piece2:
         mov al, [di]
         cmp [bx], al
         je M_R_Next2 ;move rook end
-        ;pop bx ;=========================== 1 pop
         lea bx,ValidAttacks
         add bx,dx
         mov [bx], ah
         mov [bx+1], cl
         add dx,2
-     ;   push bx ;======================== 1 push
          
 
 
@@ -643,19 +648,19 @@ Moves_rook PROC ; lea si with valid moves array
         mov [si+1], ah 
         add si,2
         sub bx,16
+        cmp IsKing,1
+        je M_R_Next3
         jmp M_R_Check_Col_Up
 
     M_R_Found_piece3:
         mov al, [di]
         cmp [bx], al
         je M_R_Next3 ;move rook end
-        ;pop bx ;=========================== 1 pop
         lea bx,ValidAttacks
         add bx,dx
         mov [bx], ch
         mov [bx+1], ah
         add dx,2
-        ;push bx ;======================== 1 push
 
     M_R_Next3:
     ;initializations
@@ -673,34 +678,21 @@ Moves_rook PROC ; lea si with valid moves array
         mov [si+1], ah 
         add si,2
         add bx,16
+        cmp IsKing,1
+        je M_R_Finalize
         jmp M_R_Check_Col_Down
 
     M_R_Found_piece4:
         mov al, [di]
         cmp [bx], al
         je M_R_Finalize ;move rook end
-        ;pop bx ;=========================== 1 pop
         lea bx,ValidAttacks
         add bx,dx
         mov [bx], ch
         mov [bx+1], ah
         add dx,2
-        ;push bx ;======================== 1 push
 
     M_R_Finalize:
-    ; lea bx, ValidMoves
-    ; add bx, 40 ; last memory loction in Validmoves array
-    ; mov al, '$'
-    ; M_R_remove_excess:
-    ;     cmp si,bx
-    ;     je M_R_end
-    ;     cmp [si],al
-    ;     je M_R_end
-    ;     mov [si], al
-    ;     inc si
-    ;     jmp M_R_remove_excess
-    ; M_R_end:
-    ;popa
     ret
 Moves_rook ENDP
 
@@ -731,6 +723,8 @@ Moves_bishop PROC ; load si with valid moves
         mov [si+1], al
         add si,2
         sub bx, 14 ; 34an ytl3 row ela square
+        cmp IsKing,1
+        je M_B_Next1
         jmp M_B_Check_Diag_right_up
 
     M_B_Found_piece1:
@@ -743,7 +737,6 @@ Moves_bishop PROC ; load si with valid moves
         mov [bx], ah
         mov [bx+1], al
         add dl,2
-       ; push bx ;============= 1 push 
 
     M_B_Next1:
     ;initializations
@@ -764,20 +757,20 @@ Moves_bishop PROC ; load si with valid moves
         mov [si+1], al
         add si,2
         sub bx, 18 ; 34an ytl3 row + square kman
+        cmp IsKing,1
+        je M_B_Next2
         jmp M_B_Check_Diag_left_up
 
     M_B_Found_piece2:
         mov dh, [di]
         cmp [bx], dh
         je M_B_Next2 ;move rook end
-        ;pop bx ;=========================== 1 pop
         lea bx,ValidAttacks
         mov dh,0
         add bx,dx
         mov [bx], ah
         mov [bx+1], al
         add dl,2
-        ;push bx ;======================== 1 push
          
 
 
@@ -801,20 +794,20 @@ Moves_bishop PROC ; load si with valid moves
         mov [si+1], al 
         add si,2
         add bx, 18 ; ynzl row + square
+        cmp IsKing,1
+        je M_B_Next3
         jmp M_B_Check_Diag_right_down
 
     M_B_Found_piece3:
         mov dh, [di]
         cmp [bx], dh
         je M_B_Next3 ;move rook end
-        ;pop bx ;=========================== 1 pop
         lea bx,ValidAttacks
         mov dh,0
         add bx,dx
         mov [bx], ah
         mov [bx+1], al
         add dl,2
-        ;push bx ;======================== 1 push
 
     M_B_Next3:
     ;initializations
@@ -835,39 +828,27 @@ Moves_bishop PROC ; load si with valid moves
         mov [si+1], al 
         add si,2
         add bx, 14 ; row ela square
+        cmp IsKing,1
+        je M_B_Finalize
         jmp M_B_Check_Diag_left_down
 
     M_B_Found_piece4:
         mov dh, [di]
         cmp [bx], dh
         je M_B_Finalize ;move rook end
-        ;pop bx ;=========================== 1 pop
         lea bx,ValidAttacks
         mov dh,0
         add bx,dx
         mov [bx], ah
         mov [bx+1], al
         add dl,2
-        ;push bx ;======================== 1 push
+
 
      M_B_Finalize:
-    ; lea bx, ValidMoves
-    ; add bx, 40 ; last memory loction in Validmoves array
-    ; mov al, '$'
-    ; M_B_remove_excess:
-    ;     cmp si,bx
-    ;     je M_B_end
-    ;     cmp [si],al
-    ;     je M_B_end
-    ;     mov [si], al
-    ;     inc si
-    ;     jmp M_B_remove_excess
-    ; M_B_end:
-    ;popa
     ret
 Moves_bishop ENDP
 
-;TODO:GET PAWN MOVES
+;GET PAWN MOVES
 Moves_pawn PROC
     pusha
     lea bx, ValidMoves
@@ -1000,7 +981,7 @@ Moves_pawn PROC
     ret
 Moves_pawn ENDP
 
-;TODO: GET KNIGHT MOVES
+;GET KNIGHT MOVES
 Moves_knight PROC
     pusha
     lea bx, ValidMoves
