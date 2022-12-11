@@ -525,10 +525,6 @@ GetValidMoves PROC
     je ppw
 
     pr:         ;possible moves for rook
-    ; mov dl,'4'
-    ; mov ah,2
-    ; int 21h
-    ;mov dx,0
     call Moves_rook
     popa
     ret
@@ -537,7 +533,6 @@ GetValidMoves PROC
     popa
     ret
     pb:         ;possible moves for bishop
- ;   mov dx,0
     call Moves_bishop
     popa
     ret
@@ -545,11 +540,10 @@ GetValidMoves PROC
     mov IsKing,1
     call Moves_rook
     call Moves_bishop
+    mov IsKing,0
     popa
     ret
     pq:         ;possible moves for queen
-  ;  mov dx,
-    mov IsKing,0
     call Moves_rook
     call Moves_bishop
     popa
