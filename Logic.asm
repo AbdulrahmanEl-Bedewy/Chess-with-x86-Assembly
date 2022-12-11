@@ -1170,13 +1170,5 @@ Moves_knight PROC
     ret
 Moves_knight ENDP
 
-;TODO: GET KING MOVES
-Moves_king PROC
-    pusha
-    
-    
-    popa
-    ret
-Moves_king ENDP
 
 END MAIN
