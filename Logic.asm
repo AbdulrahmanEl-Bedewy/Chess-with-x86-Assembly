@@ -880,8 +880,8 @@ Moves_pawn PROC
     dec cl
     mov [bx], ch
     mov [bx + 1], cl 
-    W_Before_Check_Attacks:
     inc cl
+    W_Before_Check_Attacks:
     add di,16
 
     W_Check_Attacks:
@@ -943,8 +943,8 @@ Moves_pawn PROC
     inc cl
     mov [bx], ch
     mov [bx + 1], cl 
-    B_Before_Check_Attacks:
     dec cl
+    B_Before_Check_Attacks:
     sub di,16
 
     B_Check_Attacks:
