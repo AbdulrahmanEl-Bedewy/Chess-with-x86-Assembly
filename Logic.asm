@@ -31,7 +31,7 @@ chessBoard  db "B0","B1","B2","B3","B4","B2","B1","B0"
             db "W5","W5","W5","W5","W5","W5","W5","W5"
             db "W0","W1","W2","W3","W4","W2","W1","W0"
 
-ValidMoves db 32 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 32 
+ValidMoves db 24 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 20 
                             ; idk the correct number
 ValidAttacks db 24 dup('$$'), '$' 
 
@@ -525,10 +525,6 @@ GetValidMoves PROC
     je ppw
 
     pr:         ;possible moves for rook
-    ; mov dl,'4'
-    ; mov ah,2
-    ; int 21h
-    ;mov dx,0
     call Moves_rook
     popa
     ret
@@ -537,7 +533,6 @@ GetValidMoves PROC
     popa
     ret
     pb:         ;possible moves for bishop
- ;   mov dx,0
     call Moves_bishop
     popa
     ret
@@ -545,11 +540,10 @@ GetValidMoves PROC
     mov IsKing,1
     call Moves_rook
     call Moves_bishop
+    mov IsKing,0
     popa
     ret
     pq:         ;possible moves for queen
-  ;  mov dx,
-    mov IsKing,0
     call Moves_rook
     call Moves_bishop
     popa
@@ -1176,13 +1170,5 @@ Moves_knight PROC
     ret
 Moves_knight ENDP
 
-;TODO: GET KING MOVES
-Moves_king PROC
-    pusha
-    
-    
-    popa
-    ret
-Moves_king ENDP
 
 END MAIN
