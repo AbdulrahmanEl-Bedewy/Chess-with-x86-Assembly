@@ -31,7 +31,7 @@ chessBoard  db "B0","B1","B2","B3","B4","B2","B1","B0"
             db "W5","W5","W5","W5","W5","W5","W5","W5"
             db "W0","W1","W2","W3","W4","W2","W1","W0"
 
-ValidMoves db 24 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 20 
+ValidMoves db 32 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 32 
                             ; idk the correct number
 ValidAttacks db 24 dup('$$'), '$' 
 
