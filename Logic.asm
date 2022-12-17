@@ -18,7 +18,7 @@ Public W_DeadPiece
 include Macro.inc
 .286
 .Model small
-.Stack 100h
+.Stack 200h
 .Data
 
 
@@ -33,7 +33,7 @@ chessBoard  db "B0","B1","B2","B3","B4","B2","B1","B0"
 
 ValidMoves db 32 dup('$$'), '$'  ; assuming that the max no. of possible moves for 1 piece is 32 
                             ; idk the correct number
-ValidAttacks db 24 dup('$$'), '$' 
+ValidAttacks db 8 dup('$$'), '$' 
 
 ;To display dead pieces
 B_DeadPiece db 16 dup('$$'),'$'
@@ -47,7 +47,6 @@ hx  db 0
 hy  db 0
 sq db 20 dup('$')
 
-CLR db 0
 IsKing db ?
 .Code
 
@@ -65,366 +64,23 @@ MAIN PROC FAR
     call RedrawPiece
 ;======================================================================================
 ;MAIN GAME LOOP
-;Handles all game logic
-;Including:
-;   1-Check for input
-;   2-Move piece
-;   3-Getting available moves
+
 GameLP:
     mov ch,px
     mov cl,py
+    mov ah,1
+    int 16h   
+    jz GameLP
+
     mov ah,0
-    int 16h    
+    int 16h   
+     
+    cmp al, 'e'
+    je ending
+
     ;Check if select key pressed
-    cmp al,'q'
-    jne Check_Movement_Keys_mid1 ; Check_Movement_Keys_mid1Not Select key (Check Movement Keys)
-    jmp Check_Piece
-
-;======================================================================================
-    ;This is used to clear valid moves and attacks (Code jumps to "clears")
-    ;when another piece is selected
-    ;====================
-    ;   START CLEARS
-    ;====================
-    clears:
-    lea di, ValidMoves
-    mov al, '$'
-    ClearMoves:
-        cmp [di],al
-        je NoVM ;no valid moves found (Check attacks)
-
-        mov ch, [di]
-        mov cl, [di+1]
-        call RedrawBoardSq
-
-        mov [di], al
-        mov [di+1], al
-
-        add di,2
-        jmp ClearMoves
-
-    ;=====
-    GameLP_mid:jmp GameLP
-    ;=====
-
-    NoVM: 
-    ;Check if valid attacks present
-    lea di, ValidAttacks
-    mov al, '$'
-    ClearAttacks:
-        cmp [di],al
-        je HandleDrawing
-
-        mov ch, [di]
-        mov cl, [di+1]
-        call RedrawBoardSq
-        call RedrawPiece
-
-        mov [di], al
-        mov [di+1], al
-
-        add di,2
-        jmp ClearAttacks
-
-    ;======
-    Check_Movement_Keys_mid1: jmp Check_Movement_Keys_mid2 ;Check_Movement_Keys_mid2
-    ;======
-
-    ;Handle previous and current drawing
-    HandleDrawing:
-    mov ch,px
-    mov cl,py
-    DrawSq px,py
-    call RedrawPiece
-    cmp hx,0
-    je GameLP
-    mov ch,hx
-    mov cl,hy
-    call RedrawBoardSq
-    ;=========
-    jmp skip_mid_GL             ;MID JUMPS
-    GameLP_mid1:jmp GameLP_mid  ;Just to go back to GameLP (mid jump)
-    skip_mid_GL:
-    ;=========
-
-    ;Check if clears from not valid attack 
-    ;So, select new piece and get moves
-    cmp CLR,1 
-    jne GameLP_mid ;We did not select a new piece (Go back to GameLP to check key input)
-    ;Note: the clr boolean is set in a label called "Not_Valid_Attack"
-    ;      please check logic to understand more
-
-    ;Get current piece moves 
-    call GetValidMoves
-    call DrawPossibleMoves
-    call DrawPossibleAttacks
-    mov ch,px
-    mov cl,py
-    DrawSq px,py
-    call RedrawPiece
-    mov CLR,0
+    call HandleInput
     jmp GameLP
-    ;====================
-    ;   END CLEARS
-    ;====================
-;======================================================================================
-    ;Check if selected was a piece
-    Check_Piece:
-
-    mov ch,px
-    mov cl,py
-    call to_idx
-    mov bl,'0'
-    cmp [di], bl
-    jne select_piece_mid
-
-
-    ; pressed Q on empty square. 
-    cmp hx,0
-    je GameLP_mid1 ;Pressed on empty square (Go back to GameLP to check key input)
-
-    ;=============
-    jmp G_L_skip_move_mid
-    Check_Movement_Keys_mid2:    ;MID JUMPS
-    jmp Check_Movement_Keys_mid3 ;Check_Movement_Keys_mid3
-    G_L_skip_move_mid:
-    ;=============
-;======================================================================================
-    ;check if valid move
-    mov ch,px
-    mov cl,py
-    lea di,ValidMoves
-    mov al, '$'
-    Check_Valid:
-        cmp [di],al
-        je DeselectPiece
-        cmp ch,[di]
-        jne nextCheck_Valid
-        cmp cl,[di+1]
-        jne nextCheck_Valid
-        jmp Done_ValidMove
-
-        nextCheck_Valid:
-        add di,2
-        jmp Check_Valid
-
-    ;==========
-    select_piece_mid:jmp select_piece ;MID JUMPS
-    ;==========
-
-
-    Done_ValidMove:
-    ;yes it is a valid move
-    mov ch,px
-    mov cl,py
-    call to_idx
-    mov bx,di ; bx is the empty square position in chessboard array 
-    mov ch, hx
-    mov cl, hy
-    call RedrawBoardSq
-    call to_idx ; di is the previously selected piece's position in chessboard array
-    mov cl, [di]
-    mov [bx], cl
-    mov ah, '0'
-    mov [di], ah
-    inc di
-    inc bx
-    mov cl, [di]
-    mov [bx], cl
-    mov [di], ah  
-    
-    ;Reset select to not selected
-    mov hx,0
-    mov hy,0
-    ;Clear Valid moves & Attacks
-    jmp clears
-;======================================================================================
-    ;========
-    Check_Movement_Keys_mid3:jmp Check_Movement_Keys_mid4 ;Check_Movement_Keys_mid4
-    ;========
-;======================================================================================
-    ;General deselects piece in hx:hy
-    DeselectPiece:
-    mov ch, hx
-    mov cl, hy
-    DrawSq px, py
-    call RedrawBoardSq
-    call RedrawPiece
-    mov hx,0
-    mov hy,0
-    ;Clear Valid moves & Attacks
-    jmp clears
-;======================================================================================
-    ; no piece was previously selected so select current piece
-    ; or another piece is selected (Check Valid Attack)
-    select_piece:
-
-    ;Check if selected piece is in Valid Attacks
-    If_Valid_Attack:
-    ;check if valid attack
-    lea di,ValidAttacks
-    mov al, '$'
-    Check_Valid_Attack:
-        cmp [di],al
-        je Not_Valid_Attack_mid
-        cmp ch,[di]
-        jne nextCheck_Attack
-        cmp cl,[di+1]
-        jne nextCheck_Attack
-        jmp Done_Valid_Attack
-
-        nextCheck_Attack:
-        add di,2
-        jmp Check_Valid_Attack
-
-    ;==========
-    Check_Movement_Keys_mid4:jmp move ;Check_Movement_Keys_mid 
-    ;==========
-
-    Done_Valid_Attack:
-    ;put piece in its DeadPiece Array
-    ;Replace piece to place
-    mov ch,px
-    mov cl,py
-    call to_idx
-    mov bl,'W'
-    cmp [di],bl
-    jne kill_Black
-    lea si,W_DeadPiece
-    mov bl,'$'
-    sub si,2
-    lp2:add si,2
-        cmp [si],bl
-        jne lp2
-    mov bh,[di]
-    mov bl,[di+1]
-    mov [si],bh
-    mov [si+1],bl
-    
-    ;Swap and replace new pieces
-    mov bx,di
-    mov ch,hx
-    mov cl,hy
-    call to_idx
-    mov cx,[di]
-    mov [bx],cx
-    mov ax,3030h
-    mov [di],ax
-    call DrawDeadP ;Add dead piece
-    ;Clear Valid moves & Attacks
-    jmp clears
-
-    ;=======
-    Not_Valid_Attack_mid:jmp Not_Valid_Attack ;MID JUMPS
-    ;=======
-
-    kill_Black:
-    lea si,B_DeadPiece
-    mov bl,'$'
-    sub si,2
-    lp3:add si,2
-        cmp [si],bl
-        jne lp3
-    mov bh,[di]
-    mov bl,[di+1]
-    mov [si],bh
-    mov [si+1],bl
-    ;Swap and replace new pieces
-    mov bx,di
-    mov ch,hx
-    mov cl,hy
-    call to_idx
-    mov cx,[di]
-    mov [bx],cx
-    mov ax,3030h
-    mov [di],ax
-    call DrawDeadP ;Add dead piece
-    ;Clear Valid moves & Attacks
-    jmp clears
-
-    ;Person Selected Piece that is not valid for attack
-    ;So, this means we need to select current piece
-    Not_Valid_Attack:
-    ; remove prev highlighted piece background
-    mov ch, hx
-    mov cl, hy
-    call RedrawBoardSq
-    call RedrawPiece
-    
-    mov ch, px
-    mov cl, py
-
-    mov hx, ch
-    mov hy, cl
-    ;Clear Valid moves & Attacks
-    mov CLR,1 ;Set CLR boolean to indicate (Get current piece moves in "clears")
-    jmp clears
-;======================================================================================
-    
-GameLPmid:
-jmp GameLP
-
-move:
-    ;movement keys
-    MOV ch,px
-    MOV cl,py
-    
-    cmp al,'e'
-    jz ending_mid
-    cmp al,'d'
-    je Right
-    cmp al,'a'
-    je Left
-    cmp al,'w'
-    je up
-    cmp al,'s'
-    je down
-    jmp GameLP
-    Right:
-    cmp px,8
-    je GameLPmid
-    add px,1
-    jmp lp
-
-    ending_mid:
-    jmp ending
-
-    Left:
-    cmp px,1
-    je GameLPmid
-    sub px,1
-    jmp lp
-    up:
-    cmp py,1
-    je GameLPmid
-    sub py,1
-    jmp lp
-    down:
-    cmp py,8
-    je GameLPmid
-    add py,1
-   lp:  
-    ;call Init
-    call RedrawBoardSq
-    ;call DrawBoard
-    ;call DrawPieces
-    call DrawPossibleMoves
-    call DrawPossibleAttacks
-    DrawSq px, py
-    call RedrawPiece
-
-    cmp hx,0
-    je skip
-    ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
-    DrawSq hx, hy
-    mov ch, hx
-    mov cl, hy
-    call RedrawPiece
-    skip:
-    mov ch,px
-    mov cl,py
-    call RedrawPiece
-    jmp GameLPmid
     
     ending:
     
@@ -443,6 +99,231 @@ move:
     INT 21H
 hlt 
 Main ENDP
+
+
+HandleInput PROC    ; the user input is in ax => al:ascii ah:scan code
+                    ;Handles all game logic
+                    ;Including:
+                    ;   1-Check for input
+                    ;   2-Move piece
+                    ;   3-Getting available moves
+    MOV ch,px
+    MOV cl,py
+    cmp al,'q'
+    je select_mid
+    cmp al,'d'
+    je Right
+    cmp al,'a'
+    je Left
+    cmp al,'w'
+    je up
+    cmp al,'s'
+    je down
+    
+    ret
+;==================================
+;This part is responsible for updating the selector position on key press
+    Right:  
+    cmp px,8
+    je Return
+    add px,1
+    jmp Draw_Highlighted
+    Left:
+    cmp px,1
+    je Return
+    sub px,1
+    jmp Draw_Highlighted
+    up:
+    cmp py,1
+    je Return
+    sub py,1
+    jmp Draw_Highlighted
+    down:
+    cmp py,8
+    je Return
+    add py,1
+
+
+
+    jmp Draw_Highlighted
+    select_mid:jmp select
+
+    Return:
+        ret
+;==================================
+;This part is responsible for drawing selector position update
+    Draw_Highlighted:
+        call RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
+        call DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
+        call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
+        call RedrawPiece ; redraw piece if any at the old location
+
+        cmp hx,0
+        je skip
+        ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+        DrawSq hx, hy
+        mov ch, hx
+        mov cl, hy
+        call RedrawPiece
+        skip:
+        mov ch,px
+        mov cl,py
+        DrawSq px, py ;draw higlighting of new square
+        call RedrawPiece ; 
+        ret
+;==================================
+;This part is responsible for moving and attacking logic
+    select:
+        
+    ;check if valid move
+        mov ch,px
+        mov cl,py
+        call to_idx
+        lea si,ValidMoves
+        call List_Contains
+        cmp al,0 ; selected pos is not a valid move
+        je Check_Valid_Attack
+        call Move_Piece
+
+        jmp H_I_ClearValidLists
+        
+        Check_Valid_Attack:
+            lea si, ValidAttacks
+            call List_Contains
+            cmp al,0 ; selected pos is not a valid attack 
+            jne Skip_Check_Empty
+            mov al, '0'
+            cmp [di], al ; check if position is empty and not valid move or attack
+            je H_I_ClearValidLists
+            jmp Sel
+            Skip_Check_Empty:
+            mov al, 'B'
+            cmp [di], al
+            je kill_Black
+            ;kill white
+            lea si, W_DeadPiece
+            jmp Kill_Piece
+            kill_Black:
+            lea si, B_DeadPiece
+            Kill_Piece:
+            mov bl,'$'  ;get last element in array to append at the end
+            sub si,2
+            GetEnd:add si,2
+                cmp [si],bl
+                jne GetEnd
+            mov bh,[di]
+            mov bl,[di+1]
+            mov [si],bh
+            mov [si+1],bl
+            call Move_Piece 
+;==================================
+;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
+        H_I_ClearValidLists:
+            ClearValidMoves
+            ClearValidAttacks
+            
+
+            ;===============
+            ;General deselects piece in hx:hy
+            mov ch, hx
+            mov cl, hy
+            call RedrawBoardSq
+            call RedrawPiece
+            mov hx,0
+            mov hy,0
+            ;===============
+            call DrawDeadP
+            ret
+
+;==================================
+;This part is responsible for selecting a new piece and drawing its valid moves & attacks 
+        Sel:
+
+            mov ch, hx
+            mov cl, hy
+            call RedrawBoardSq
+            call RedrawPiece
+
+            mov ch, px
+            mov cl, py
+
+            mov hx, ch
+            mov hy, cl 
+            ClearValidMoves
+            ClearValidAttacks
+
+            mov ch, px
+            mov cl, py
+            call GetValidMoves
+            call DrawPossibleMoves
+            call DrawPossibleAttacks
+            ret
+    
+HandleInput ENDP
+
+
+;checks if a value in cx is contained in an array. lea si, array
+;array's end is denoted by a $
+;return al=1 if found al=0 if not found 
+List_Contains PROC
+    mov al, '$'
+    Check_if_Exists:
+        cmp [si],al
+        je not_found
+        cmp ch,[si]
+        jne nextCheck
+        cmp cl,[si+1]
+        jne nextCheck
+        jmp found
+
+        nextCheck:
+        add si,2
+        jmp Check_if_Exists
+
+    found:
+    mov al,1
+    ret
+    not_found:
+    mov al,0
+    ret
+List_Contains ENDP
+
+; move a piece's location in chessboard array
+; from hx & hy to px & py
+Move_Piece PROC
+    mov ch,px
+    mov cl,py
+    call to_idx
+    mov bx,di
+    mov ch,hx
+    mov cl,hy
+    call to_idx
+    mov cx,[di]
+    mov [bx],cx
+    mov ax,3030h
+    mov [di],ax
+    ret
+Move_Piece ENDP
+
+;Clears an array and replace all elements with $
+;lea si, array
+ClearList PROC far
+    mov al,'$'
+    Clear:
+        cmp [si], al
+        je Cleared
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear
+    Cleared:
+    ret
+ClearList ENDP
+
 
 ;Gets start idx of Position (CX) and puts it in DI
 to_idx PROC

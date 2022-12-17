@@ -69,36 +69,9 @@ W_pawn db "W5"
 
 
 
-MAIN PROC FAR
-    MOV AX , @DATA
-    MOV DS , AX
-    
-    MOV AH, 0
-    MOV AL, 13h
-    INT 10h
-	
-    call Init
-	
-    ; Press any key to exit
-    MOV AH , 0
-    INT 16h
-    
-    
-    ;Change to Text MODE
-    MOV AH,0          
-    MOV AL,03h
-    INT 10h 
-
-    ; return control to operating system
-    MOV AH , 4ch
-    INT 21H
-
-    hlt
-MAIN ENDP
-
 
 ;initializes graphics, loads all pictures and draw initial board config
-Init PROC
+Init PROC FAR
     pusha
     MOV AH, 0
     MOV AL, 13h
@@ -189,7 +162,7 @@ Init PROC
 Init ENDP
 
 ;draw square // for highlighting 
-DrawSquare PROC ; put y in al
+DrawSquare PROC FAR ; put y in al
                 ; x in bl
                 ; color in dl
     pusha
@@ -228,7 +201,7 @@ DrawSquare PROC ; put y in al
     ret
 DrawSquare ENDP
 
-DrawPiece PROC ; load cx:dx starting position x:y col:row 1-8:1-8
+DrawPiece PROC  ; load cx:dx starting position x:y col:row 1-8:1-8
     mov AH,0
     mov al,cl
 
@@ -271,7 +244,7 @@ DrawPiece PROC ; load cx:dx starting position x:y col:row 1-8:1-8
 DrawPiece ENDP
 
 ;description
-RedrawBoardSq PROC ; load ch:cl starting position x:y col:row 1-8:1-8
+RedrawBoardSq PROC FAR ; load ch:cl starting position x:y col:row 1-8:1-8
     pusha
 
     Lea Bx,  BoardData
@@ -337,7 +310,7 @@ RedrawBoardSq PROC ; load ch:cl starting position x:y col:row 1-8:1-8
     ret
 RedrawBoardSq ENDP
 
-RedrawPiece PROC
+RedrawPiece PROC FAR
     pusha
     ;check if square had piece and draw it
     
@@ -371,6 +344,7 @@ RedrawPiece PROC
     popa
     ret
 RedrawPiece ENDP
+
 DrawBoard PROC 
     pusha 
     LEA BX , BoardData ; BL contains index at the current drawn pixel	
@@ -433,7 +407,7 @@ ReadData PROC ; load file size in cx
 ReadData ENDP 
 
 ;description
-DrawPossibleMoves PROC
+DrawPossibleMoves PROC FAR
     pusha
     lea di, ValidMoves
     mov cl, '$'
@@ -452,7 +426,7 @@ DrawPossibleMoves PROC
     ret
 DrawPossibleMoves ENDP
 
-DrawPossibleAttacks PROC
+DrawPossibleAttacks PROC FAR
     pusha
     lea di, ValidAttacks
     mov ah, '$'
@@ -485,7 +459,7 @@ CloseFile PROC
 	RET
 CloseFile ENDP
 
-DrawDeadP PROC
+DrawDeadP PROC FAR
     pusha
     lea di,B_DeadPiece
     mov al,'$'

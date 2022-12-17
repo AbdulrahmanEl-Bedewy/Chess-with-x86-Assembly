@@ -28,34 +28,48 @@ DrawSq MACRO x, y  ; draws 1 square of solid color at specified coordinates
     call DrawSquare
 ENDM
 
+ClearValidMoves MACRO 
+    Local Clear1
+    Local Cleared1
+    lea si,ValidMoves
+    mov al,'$'
+    Clear1:
+        cmp [si], al
+        je Cleared1
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        ;  call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear1
+    Cleared1:
+    DrawSq px,py
+    mov ch,px
+    mov cl,py
+    call RedrawPiece
+ENDM
 
-;     mov AH,0
-;     mov al,cl
-
-;     mov Si, 20D
-;     mul Si
-;     mov Si, 198D
-;     mul Si
-;     add bx,ax
-
-;     mov Al,ch
-;     mov ah,0
-;     mov cl, 20D
-;     mul cl
-;     add bx,ax
-; ;==============
-;     pop cx
-;     mov al,cl
-;     mov bl,ch
-
-;     mov Cx, 20D
-;     mul Cx
-;     mov Cx, 320D
-;     mul Cx
-;     mov Dx, Ax
-    
-;     mov Ax,Bx
-;     mov Cx, 20D
-;     mul Cx
-;     add Cx, AX
-;     add Cx , 60
+ClearValidAttacks MACRO 
+    Local Clear2
+    Local Cleared2
+    lea si, ValidAttacks
+    mov al,'$'
+    Clear2:
+        cmp [si], al
+        je Cleared2
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear2
+    Cleared2:
+    DrawSq px,py
+    mov ch,px
+    mov cl,py
+    call RedrawPiece
+ENDM
