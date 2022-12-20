@@ -1,4 +1,4 @@
-Public Init
+Public InitBoard
 Public DrawSquare
 Public DrawPiece
 Public DrawPieces
@@ -12,6 +12,8 @@ EXTRN to_idx:FAR
 EXTRN chessBoard:byte
 EXTRN ValidMoves:byte
 EXTRN ValidAttacks:byte
+EXTRN ValidMoves2:byte
+EXTRN ValidAttacks2:byte
 EXTRN B_DeadPiece:byte
 EXTRN W_DeadPiece:byte
 include Macro.inc
@@ -68,10 +70,8 @@ W_pawn db "W5"
 .Code
 
 
-
-
 ;initializes graphics, loads all pictures and draw initial board config
-Init PROC FAR
+InitBoard PROC FAR
     pusha
     MOV AH, 0
     MOV AL, 13h
@@ -159,7 +159,7 @@ Init PROC FAR
 
     popa
     ret
-Init ENDP
+InitBoard ENDP
 
 ;draw square // for highlighting 
 DrawSquare PROC FAR ; put y in al
@@ -422,6 +422,19 @@ DrawPossibleMoves PROC FAR
         jmp DPM_Draw
 
     DPM_end:
+     lea di, ValidMoves2
+    mov cl, '$'
+    DPM_Draw2:
+        cmp [di], cl
+        je DPM_end2
+        mov bl,[di]
+        mov al,[di+1]
+        mov dl, 2bh ;8Ch
+        call DrawSquare
+        add di, 2
+        jmp DPM_Draw2
+
+    DPM_end2:
     popa
     ret
 DrawPossibleMoves ENDP
@@ -446,6 +459,24 @@ DrawPossibleAttacks PROC FAR
         jmp DPA_Draw
 
     DPA_end:
+    lea di, ValidAttacks2
+    mov ah, '$'
+    DPA_Draw2:
+        cmp [di], ah
+        je DPA_end2
+        ; mov bl,24h
+        ; mov al, 24h
+        mov bl,[di]
+        mov al,[di+1]
+        mov dl, 6Bh
+        call DrawSquare
+        mov ch,[di]
+        mov cl,[di+1]
+        call RedrawPiece
+        add di, 2
+        jmp DPA_Draw2
+
+    DPA_end2:
     popa
     ret
 DrawPossibleAttacks ENDP
