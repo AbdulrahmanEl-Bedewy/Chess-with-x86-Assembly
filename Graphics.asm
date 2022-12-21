@@ -1,4 +1,5 @@
 Public InitBoard
+Public LoadAssets
 Public DrawSquare
 Public DrawPiece
 Public DrawPieces
@@ -8,6 +9,7 @@ Public RedrawPiece
 Public DrawPossibleMoves
 Public DrawPossibleAttacks
 Public DrawDeadP
+Public DrawCooldown
 EXTRN to_idx:FAR
 EXTRN chessBoard:byte
 EXTRN ValidMoves:byte
@@ -37,6 +39,15 @@ w_queenFilename DB 'assets\Binfiles\w_queen.bin', 0
 b_pawnFilename DB 'assets\Binfiles\b_pawn.bin', 0
 w_pawnFilename DB 'assets\Binfiles\w_pawn.bin', 0
 
+cooldown1Filename DB 'assets\Binfiles\cd1.bin', 0
+cooldown2Filename DB 'assets\Binfiles\cd2.bin', 0
+cooldown3Filename DB 'assets\Binfiles\cd3.bin', 0
+cooldown4Filename DB 'assets\Binfiles\cd4.bin', 0
+cooldown5Filename DB 'assets\Binfiles\cd5.bin', 0
+cooldown6Filename DB 'assets\Binfiles\cd6.bin', 0
+cooldown7Filename DB 'assets\Binfiles\cd7.bin', 0
+cooldown8Filename DB 'assets\Binfiles\cd8.bin', 0
+
 Filehandle DW ?
 
 
@@ -53,6 +64,15 @@ b_queenData DB 20*20 dup(0)
 w_queenData DB 20*20 dup(0)
 b_pawnData DB 20*20 dup(0)
 w_pawnData DB 20*20 dup(0)
+
+cooldown1Data DB 20*20 dup(0)
+cooldown2Data DB 20*20 dup(0)
+cooldown3Data DB 20*20 dup(0)
+cooldown4Data DB 20*20 dup(0)
+cooldown5Data DB 20*20 dup(0)
+cooldown6Data DB 20*20 dup(0)
+cooldown7Data DB 20*20 dup(0)
+cooldown8Data DB 20*20 dup(0)
 
 B_rook db "B0"
 W_rook db "W0"
@@ -104,19 +124,6 @@ InitBoard PROC FAR
         DEC BL
     JNZ sidebar2
 
-    LoadImage BoardFilename, 198, BoardData
-    LoadImage b_rookFilename, 20, b_rookData
-    LoadImage w_rookFilename, 20, w_rookData
-    LoadImage b_knightFilename, 20, b_knightData
-    LoadImage w_knightFilename, 20, w_knightData
-    LoadImage b_bishopFilename, 20, b_bishopData
-    LoadImage w_bishopFilename, 20, w_bishopData
-    LoadImage b_kingFilename, 20, b_kingData
-    LoadImage w_kingFilename, 20, w_kingData
-    LoadImage b_queenFilename, 20, b_queenData
-    LoadImage w_queenFilename, 20, w_queenData
-    LoadImage b_pawnFilename, 20, b_pawnData
-    LoadImage w_pawnFilename, 20, w_pawnData
 
     call DrawBoard
 
@@ -160,6 +167,33 @@ InitBoard PROC FAR
     popa
     ret
 InitBoard ENDP
+
+;Loads all images used in the game
+LoadAssets PROC far
+    LoadImage BoardFilename, 198, BoardData
+    LoadImage b_rookFilename, 20, b_rookData
+    LoadImage w_rookFilename, 20, w_rookData
+    LoadImage b_knightFilename, 20, b_knightData
+    LoadImage w_knightFilename, 20, w_knightData
+    LoadImage b_bishopFilename, 20, b_bishopData
+    LoadImage w_bishopFilename, 20, w_bishopData
+    LoadImage b_kingFilename, 20, b_kingData
+    LoadImage w_kingFilename, 20, w_kingData
+    LoadImage b_queenFilename, 20, b_queenData
+    LoadImage w_queenFilename, 20, w_queenData
+    LoadImage b_pawnFilename, 20, b_pawnData
+    LoadImage w_pawnFilename, 20, w_pawnData
+
+    LoadImage cooldown1Filename, 20, cooldown1Data
+    LoadImage cooldown2Filename, 20, cooldown2Data
+    LoadImage cooldown3Filename, 20, cooldown3Data
+    LoadImage cooldown4Filename, 20, cooldown4Data
+    LoadImage cooldown5Filename, 20, cooldown5Data
+    LoadImage cooldown6Filename, 20, cooldown6Data
+    LoadImage cooldown7Filename, 20, cooldown7Data
+    LoadImage cooldown8Filename, 20, cooldown8Data
+    ret
+LoadAssets ENDP
 
 ;draw square // for highlighting 
 DrawSquare PROC FAR ; put y in al
@@ -626,6 +660,72 @@ DrawRightPiece PROC
     popa 
     ret
 DrawRightPiece ENDP
+
+;takes position in CX
+;el rakam f al
+DrawCooldown PROC FAR
+    pusha
+    mov bl, 0
+    cmp al,bl
+    je DC_cd1
+    inc bl
+    cmp al,bl
+    je DC_cd2
+    inc bl
+    cmp al,bl
+    je DC_cd3
+    inc bl
+    cmp al,bl
+    je DC_cd4
+    inc bl
+    cmp al,bl
+    je DC_cd5
+    inc bl
+    cmp al,bl
+    je DC_cd6
+    inc bl
+    cmp al,bl
+    je DC_cd7
+    inc bl
+    cmp al,bl
+    je DC_cd8
+
+
+
+    jmp DC_nopiece1
+
+    DC_cd1: 
+    lea bx,cooldown1Data
+    jmp DC_onepiece
+    DC_cd2:
+    lea bx,cooldown2Data
+    jmp DC_onepiece
+    DC_cd3:
+    lea bx,cooldown3Data
+    jmp DC_onepiece
+    DC_cd4:
+    lea bx,cooldown4Data
+    jmp DC_onepiece
+    DC_cd5:
+    lea bx,cooldown5Data
+    jmp DC_onepiece
+    DC_cd6:
+    lea bx,cooldown6Data
+    jmp DC_onepiece
+    DC_cd7:
+    lea bx,cooldown7Data
+    jmp DC_onepiece
+    DC_cd8:
+    lea bx,cooldown8Data
+    jmp DC_onepiece
+    
+    DC_onepiece:
+    call DrawPiece
+    call RedrawPiece
+    DC_nopiece1:
+    popa 
+    ret
+DrawCooldown ENDP
 
 
 END

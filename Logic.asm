@@ -8,6 +8,7 @@ EXTRN RedrawPiece:FAR
 EXTRN DrawPossibleMoves:FAR
 EXTRN DrawPossibleAttacks:FAR
 EXTRN DrawDeadP:FAR
+EXTRN DrawCooldown:FAR
 ;EXTRN Moves_bishop:FAR
 Public to_idx
 Public GameScreen
@@ -120,25 +121,54 @@ GameScreen PROC FAR
     GameLP:
         call far ptr GetFrameTime
         lea bx, CoolDownPieces
-        mov dx, 900 ; => 9 sec for testing purposes. should be 3
+        mov dx, 300 ; => 9 sec for testing purposes. should be 3
         mov si, 0
-        mov cx, 64
+        mov cx, 0
+        mov di,ax
         UpdateCooldown:
-            cmp [word ptr bx], si ;0
-            je NotInCoolDown
+            CD_Lp:
+                cmp [word ptr bx], si ;0
+                je NotInCoolDown
 
-            cmp [word ptr bx], dx ;300 
-            jae DoneCooldown
+                cmp [word ptr bx], dx ;300 
+                jae DoneCooldown
 
-            add [word ptr bx], ax 
-            jmp NotInCoolDown
 
-            DoneCooldown:
-            mov [word ptr bx], si ;0
+                push dx
+                mov ax, [word ptr bx]
+                mov dl, 37
+                div dl
+                mov dh,al
 
-            NotInCoolDown:
-            add bx, 2
-            loop UpdateCooldown
+                add [word ptr bx], di
+
+                mov ax, [word ptr bx]
+                mov dl, 37
+                div dl
+                cmp al,dh
+                je CD_Lp_Skip                 
+                call RedrawBoardSq
+                call DrawCooldown
+                call RedrawPiece
+                CD_Lp_Skip:
+                pop dx
+               
+
+                jmp NotInCoolDown
+
+                DoneCooldown:
+                mov [word ptr bx], si ;0
+                call RedrawPiece
+
+                NotInCoolDown:
+                add bx, 2
+                inc ch
+                cmp ch,9
+                jne CD_Lp
+            inc cl
+            mov ch,1
+            cmp cl,9
+            jne CD_Lp
 
 
         mov ch,px
