@@ -65,6 +65,7 @@ hx  db 0
 hy  db 0
 hx2 db 0
 hy2 db 0
+sq db 20 dup('$')
 IsKing db ?
 W_King_X db 5
 W_King_Y db 8
@@ -72,6 +73,15 @@ B_King_X db 5
 B_King_Y db 1
 B_Check db 0
 W_Check db 0
+
+;Time variables
+prevms db ? 
+prevs db ?  
+Prevtime dw ?
+frame db ?   
+timer dw 0 
+
+CoolDownPieces dw 64 dup(0)
 .Code
 
 
@@ -90,10 +100,47 @@ GameScreen PROC FAR
     MOV ch,px2
     MOV cl,py2
     call RedrawPiece
+
+    mov ah, 2Ch    
+    int 21h
+    mov al,dh ; move el seconds
+    mov ah,0
+
+    mov bl, 100
+    mul bl
+    mov bl, cl
+    mov bh, 0
+    add ax , bx
+    mov bx, ax
+    mov Prevtime, bx
+    mov prevs, dh
     ;======================================================================================
     ;MAIN GAME LOOP
 
     GameLP:
+        call far ptr GetFrameTime
+        lea bx, CoolDownPieces
+        mov dx, 900
+        mov si, 0
+        mov cx, 64
+        UpdateCooldown:
+            cmp [word ptr bx], si ;0
+            je NotInCoolDown
+
+            cmp [word ptr bx], dx ;300 
+            jae DoneCooldown
+
+            add [word ptr bx], ax 
+            jmp NotInCoolDown
+
+            DoneCooldown:
+            mov [word ptr bx], si ;0
+
+            NotInCoolDown:
+            add bx, 2
+            loop UpdateCooldown
+
+
         mov ch,px
         mov cl,py
         mov ah,1
@@ -106,62 +153,15 @@ GameScreen PROC FAR
         cmp al, 'e'
         je ending
 
+            pusha
+            mov ah,2
+            mov dl, '4'
+            int 21h
+            popa
+
         ;Check if select key pressed
         call far ptr HandleInput
         call far ptr HandleInput2
-        
-        mov dl, 13
-        mov ah,2       
-        int 21h
-
-        mov ch, W_King_X
-        mov cl, W_King_Y 
-        call Is_Check
-        cmp al,1
-        jne NotCheck1
-
-        mov ah,2
-        mov dl, 'W'
-        int 21h
-        mov ah,2
-        mov dl, '1'
-        int 21h
-        jmp MovePiece1
-        
-        NotCheck1:
-            mov ah,2
-            mov dl, 'W'
-            int 21h
-            mov ah,2
-            mov dl, '0'
-            int 21h
-
-        MovePiece1:
-        ;===========Black king is in check??==================
-        mov ch, B_King_X
-        mov cl, B_King_Y 
-        call Is_Check
-
-        cmp al,1
-        jne NotCheck3
-
-        mov ah,2
-        mov dl, 'B'
-        int 21h
-        mov ah,2
-        mov dl, '1'
-        int 21h
-
-        jmp GameLP
-
-        NotCheck3:
-        mov ah,2
-        mov dl, 'B'
-        int 21h
-        mov ah,2
-        mov dl, '0'
-        int 21h
-
 
         jmp GameLP
         
@@ -663,6 +663,45 @@ List_Contains ENDP
 ; from hx & hy to px & py
 Move_Piece PROC
 
+    mov al, hx
+    mov ah,0
+    mov bl, 2
+    mul bl
+    mov bh, al
+    
+    mov al, hy
+    mov ah,0
+    mov bl, 16
+    mul bl
+
+    add al, bh
+    mov si, ax
+    mov ax, 0
+    lea bx, CoolDownPieces
+    cmp [word ptr bx + si], ax
+    je MP_move
+    ret
+
+    MP_move:
+     mov al, px
+    mov ah,0
+    mov bl, 2
+    mul bl
+    mov bh, al
+         
+    mov al, py
+    mov ah,0
+    mov bl, 16
+    mul bl     
+
+    add al, bh
+    mov si, ax
+    mov ax, 0
+    lea bx, CoolDownPieces
+
+    mov ax,1
+    mov [word ptr bx + si], ax
+
     mov ch,hx
     mov cl,hy
     call to_idx
@@ -703,10 +742,55 @@ Move_Piece PROC
     mov [bx],cx
     mov ax,3030h
     mov [di],ax
+
+    call UpdateCheck
     ret
 Move_Piece ENDP
 
 Move_Piece2 PROC
+
+    mov al, hx2
+    mov ah,0
+    mov bl, 2
+    mul bl
+    mov bh, al
+
+      
+    mov al, hy2
+    mov ah,0
+    mov bl, 16
+    mul bl    
+
+    add al, bh
+    mov si, ax
+    mov ax, 0
+    lea bx, CoolDownPieces
+    cmp [word ptr bx + si], ax
+    je MP_move2
+    ret
+
+    MP_move2:
+
+    mov al, px2
+    mov ah,0
+    mov bl, 2
+    mul bl
+    mov bh, al
+         
+    mov al, py2
+    mov ah,0
+    mov bl, 16
+    mul bl     
+
+    add al, bh
+    mov si, ax
+    mov ax, 0
+    lea bx, CoolDownPieces
+
+    mov ax,1
+    mov [word ptr bx + si], ax
+      
+
     mov ch,hx2
     mov cl,hy2
     call to_idx
@@ -736,6 +820,16 @@ Move_Piece2 PROC
     mov [bx],cx
     mov ax,3030h
     mov [di],ax
+
+    call UpdateCheck
+
+                pusha
+            mov ah,2
+            mov dl, '9'
+            int 21h
+            popa
+
+      
     ret
 Move_Piece2 ENDP
 
@@ -2312,4 +2406,88 @@ Is_Check PROC
         ret
 Is_Check ENDP
 
+;description
+UpdateCheck PROC
+           mov dl, 13
+        mov ah,2       
+        int 21h
+
+        mov ch, W_King_X
+        mov cl, W_King_Y 
+        call Is_Check
+        cmp al,1
+        jne NotCheck1
+
+        mov ah,2
+        mov dl, 'W'
+        int 21h
+        mov ah,2
+        mov dl, '1'
+        int 21h
+        jmp MovePiece1
+        
+        NotCheck1:
+            mov ah,2
+            mov dl, 'W'
+            int 21h
+            mov ah,2
+            mov dl, '0'
+            int 21h
+
+        MovePiece1:
+        ;===========Black king is in check??==================
+        mov ch, B_King_X
+        mov cl, B_King_Y 
+        call Is_Check
+
+        cmp al,1
+        jne NotCheck3
+
+        mov ah,2
+        mov dl, 'B'
+        int 21h
+        mov ah,2
+        mov dl, '1'
+        int 21h
+
+        ret
+
+        NotCheck3:
+        mov ah,2
+        mov dl, 'B'
+        int 21h
+        mov ah,2
+        mov dl, '0'
+        int 21h
+    ret
+UpdateCheck ENDP
+
+;this function gets the time since the last frame / call in 1/100 s
+; returned in ax & frame
+GetFrameTime PROC far
+    mov ah, 2Ch    
+    int 21h
+    mov al,dh ; move el seconds
+    mov ah,0
+    Calculate:
+        mov bl, 100
+        mul bl
+        mov bl, dl
+        mov bh, 0
+        add ax , bx
+        mov bx, ax        
+    
+        cmp dh, prevs
+        jae DontAddMin
+        
+        AddMin:
+            add ax, 6000
+        DontAddMin:            
+        sub ax, Prevtime 
+
+        mov frame, al
+        mov Prevtime, bx   
+        mov prevs, dh
+        ret
+GetFrameTime ENDP
 END ;MAIN
