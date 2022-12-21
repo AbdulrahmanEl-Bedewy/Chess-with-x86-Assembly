@@ -1,4 +1,5 @@
 EXTRN GameScreen:FAR
+EXTRN LoadAssets:FAR
 
 
 
@@ -29,6 +30,8 @@ Main PROC
     mov ax,@data
     mov ds,ax
 
+    call LoadAssets
+    
     ; lea bx, name1
     ; call GetNameScreen
     ; lea bx,name2
