@@ -2,3 +2,6 @@ logic.exe
 logic.obj
 graphics.exe
 graphics.obj
+MAIN.EXE
+MAIN.OBJ
+*.EXE
