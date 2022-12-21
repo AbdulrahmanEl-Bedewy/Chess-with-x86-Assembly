@@ -153,11 +153,6 @@ GameScreen PROC FAR
         cmp al, 'e'
         je ending
 
-            pusha
-            mov ah,2
-            mov dl, '4'
-            int 21h
-            popa
 
         ;Check if select key pressed
         call far ptr HandleInput
@@ -822,12 +817,6 @@ Move_Piece2 PROC
     mov [di],ax
 
     call UpdateCheck
-
-                pusha
-            mov ah,2
-            mov dl, '9'
-            int 21h
-            popa
 
       
     ret
