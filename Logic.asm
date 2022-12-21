@@ -120,7 +120,7 @@ GameScreen PROC FAR
     GameLP:
         call far ptr GetFrameTime
         lea bx, CoolDownPieces
-        mov dx, 900
+        mov dx, 900 ; => 9 sec for testing purposes. should be 3
         mov si, 0
         mov cx, 64
         UpdateCooldown:
@@ -150,7 +150,7 @@ GameScreen PROC FAR
         mov ah,0
         int 16h   
         
-        cmp al, 'e'
+        cmp ah, 01
         je ending
 
 
