@@ -20,6 +20,8 @@ Public ValidMoves2
 Public ValidAttacks2
 Public B_DeadPiece
 Public W_DeadPiece
+Public px
+Public py
 include Macro.inc
 .286
 .Model small
@@ -83,6 +85,8 @@ frame db ?
 timer dw 0 
 
 CoolDownPieces dw 64 dup(0)
+
+Winner db 0
 .Code
 
 
@@ -117,7 +121,6 @@ GameScreen PROC FAR
     mov prevs, dh
     ;======================================================================================
     ;MAIN GAME LOOP
-
     GameLP:
         call far ptr GetFrameTime
         lea bx, CoolDownPieces
@@ -127,27 +130,39 @@ GameScreen PROC FAR
         mov di,ax
         UpdateCooldown:
             CD_Lp:
+                ;check if piece in this position has a cooldown if not skip it
                 cmp [word ptr bx], si ;0
                 je NotInCoolDown
 
+                ;if piece is on cooldown check if the cooldown is done
                 cmp [word ptr bx], dx ;300 
                 jae DoneCooldown
-
-
+                
+                ;cooldown isn't done
+                ;check if 37/100 sec has passed since last time, if yes then update the drawing.
+                ; there are 8 frames for the cooldown and the cooldown duration is 3 sec 
+                ; so each frame should be displayed for roughly 37/100 sec
                 push dx
-                mov ax, [word ptr bx]
+                mov ax, [word ptr bx] ; move the time that passed since start of the cooldown timer until the last loop  
                 mov dl, 37
                 div dl
-                mov dh,al
+                mov dh,al 
+                ;dh now has the previous frame index
 
+                ;check if enough time has passed and the frame needs to be updated
+                ;calculate new frame index
                 add [word ptr bx], di
-
                 mov ax, [word ptr bx]
                 mov dl, 37
                 div dl
-                cmp al,dh
-                je CD_Lp_Skip                 
+                cmp al,dh ;if frame indexes equal no need to update frame thus skip 
+                je CD_Lp_Skip             
+
                 call RedrawBoardSq
+                pusha
+                DrawSq px , py
+                DrawSq2 px2 , py2
+                popa
                 call DrawCooldown
                 call RedrawPiece
                 CD_Lp_Skip:
@@ -165,9 +180,9 @@ GameScreen PROC FAR
                 inc ch
                 cmp ch,9
                 jne CD_Lp
-            inc cl
-            mov ch,1
-            cmp cl,9
+                inc cl
+                mov ch,1
+                cmp cl,9
             jne CD_Lp
 
 
@@ -175,7 +190,7 @@ GameScreen PROC FAR
         mov cl,py
         mov ah,1
         int 16h   
-        jz GameLP
+        jz GameLP1
 
         mov ah,0
         int 16h   
@@ -188,6 +203,13 @@ GameScreen PROC FAR
         call far ptr HandleInput
         call far ptr HandleInput2
 
+        cmp winner,0
+        je GameLP1
+        ; Press any key to exit
+        MOV AH , 0
+        INT 16h
+        ret
+        GameLP1:
         jmp GameLP
         
     ending:
@@ -354,6 +376,16 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
         call RedrawPiece ; redraw piece if any at the old location
 
+
+        cmp hx2,0
+        je skip2
+        ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+        DrawSq2 hx2, hy2
+        mov ch, hx2
+        mov cl, hy2
+        call RedrawPiece
+        skip2:
+       
         cmp hx,0
         je skip
         ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
@@ -362,6 +394,11 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         mov cl, hy
         call RedrawPiece
         skip:
+
+        mov ch,px2
+        mov cl,py2
+        DrawSq2 px2, py2 ;draw higlighting of new square
+        call RedrawPiece ;
         mov ch,px
         mov cl,py
         DrawSq px, py ;draw higlighting of new square
@@ -404,6 +441,13 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             kill_Black:
             lea si, B_DeadPiece
             Kill_Piece:
+
+            mov bl,'4'  ;get last element in array to append at the end
+            cmp [di+1],bl
+            jne HI_AppendDeadPiece
+            mov Winner,1 ;winner 0 => no winner 1 => white wins 2 => Black wins
+            HI_AppendDeadPiece:
+
             mov bl,'$'  ;get last element in array to append at the end
             sub si,2
             GetEnd:add si,2
@@ -431,7 +475,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov ch, px
             mov cl, py
             call to_idx
-            cmp [di], dl
+            cmp [di], dl ;dl has the player type W:white or B:black
             je Valid_Sel_mid
             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
             DeselectPlayer1
@@ -450,6 +494,40 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
 
             ret
             Valid_Sel:
+            ;Make sure the piece to be selected isn't on cooldown
+                ;Calculating the current piece's position in the piece cooldown array
+                mov al, px
+                mov ah,0
+                mov bl, 2
+                mul bl
+                mov bh, al
+                
+                mov al, py
+                mov ah,0
+                mov bl, 16
+                mul bl
+
+                add al, bh
+                mov si, ax
+
+                ;checking if the piece is on cooldown. 0 ==> no cooldown  otherwise ==> on cooldown
+                mov ax, 0
+                lea bx, CoolDownPieces
+                cmp [word ptr bx + si], ax
+                je HI_SelectNewPiece_Mid
+                DeselectPlayer1
+                lea si, ValidMoves
+                ClearValidMoves
+
+                jmp HI_SelectNewPiece_Skip
+                HI_SelectNewPiece_Mid:jmp HI_SelectNewPiece
+                HI_SelectNewPiece_Skip:
+
+                lea si, ValidAttacks
+                ClearValidAttacks
+
+                ret
+            HI_SelectNewPiece:
             mov ch, hx
             mov cl, hy
             call RedrawBoardSq
@@ -537,14 +615,30 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
         call RedrawPiece ; redraw piece if any at the old location
 
+        
+
+        cmp hx,0
+        je skip4
+        ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+        DrawSq hx, hy
+        mov ch, hx
+        mov cl, hy
+        call RedrawPiece
+        skip4:
+
         cmp hx2,0
-        je skip2
+        je skip3
         ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
         DrawSq2 hx2, hy2
         mov ch, hx2
         mov cl, hy2
         call RedrawPiece
-        skip2:
+        skip3:
+
+        mov ch,px
+        mov cl,py
+        DrawSq px, py ;draw higlighting of new square
+        call RedrawPiece
         mov ch,px2
         mov cl,py2
         DrawSq2 px2, py2 ;draw higlighting of new square
@@ -589,6 +683,13 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             kill_Black2:
             lea si, B_DeadPiece
             Kill_Piece2:
+
+            mov bl,'4'  ;get last element in array to append at the end
+            cmp [di+1],bl
+            jne HI_AppendDeadPiece2
+            mov Winner,2 ;winner 0 => no winner 1 => white wins 2 => Black wins
+            HI_AppendDeadPiece2:
+
             mov bl,'$'  ;get last element in array to append at the end
             sub si,2
             GetEnd2:add si,2
@@ -635,6 +736,40 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
 
             ret
             Valid_Sel2:
+            ;Make sure the piece to be selected isn't on cooldown
+                ;Calculating the current piece's position in the piece cooldown array
+                mov al, px2
+                mov ah,0
+                mov bl, 2
+                mul bl
+                mov bh, al
+                
+                mov al, py2
+                mov ah,0
+                mov bl, 16
+                mul bl
+
+                add al, bh
+                mov si, ax
+
+                ;checking if the piece is on cooldown. 0 ==> no cooldown  otherwise ==> on cooldown
+                mov ax, 0
+                lea bx, CoolDownPieces
+                cmp [word ptr bx + si], ax
+                je HI_SelectNewPiece_Mid2
+                DeselectPlayer2
+                lea si, ValidMoves2
+                ClearValidMoves2
+
+                jmp HI_SelectNewPiece_Skip2
+                HI_SelectNewPiece_Mid2:jmp HI_SelectNewPiece2
+                HI_SelectNewPiece_Skip2:
+
+                lea si, ValidAttacks2
+                ClearValidAttacks2
+                ret
+            HI_SelectNewPiece2:
+
             mov ch, hx2
             mov cl, hy2
             call RedrawBoardSq
@@ -687,28 +822,11 @@ List_Contains ENDP
 ; move a piece's location in chessboard array
 ; from hx & hy to px & py
 Move_Piece PROC
-
-    mov al, hx
-    mov ah,0
-    mov bl, 2
-    mul bl
-    mov bh, al
     
-    mov al, hy
-    mov ah,0
-    mov bl, 16
-    mul bl
 
-    add al, bh
-    mov si, ax
-    mov ax, 0
-    lea bx, CoolDownPieces
-    cmp [word ptr bx + si], ax
-    je MP_move
-    ret
-
-    MP_move:
-     mov al, px
+    MP_CheckKing:
+    ; set the cooldown of the piece to count 3 sec. by changing the value in cooldown array to 1.
+    mov al, px
     mov ah,0
     mov bl, 2
     mul bl
@@ -727,6 +845,8 @@ Move_Piece PROC
     mov ax,1
     mov [word ptr bx + si], ax
 
+
+    ;check if the piece is a king then update the king's position variable
     mov ch,hx
     mov cl,hy
     call to_idx
@@ -750,51 +870,43 @@ Move_Piece PROC
     ; Black_King:
     ; mov B_King_X,ch
     ; mov B_King_Y,cl
-
     SkipKingUpdate: 
     
 
     MovePiece2:
+    ;get the index of the destination, in chessboard array
     mov ch,px
     mov cl,py
     call to_idx
-
+    ;get the index of the selected piece to be moved, in chessboard array
     mov bx,di
     mov ch,hx
     mov cl,hy
     call to_idx
+    ;moving the piece's code to the destination in chessboard array and moving '00' to the original position
     mov cx,[di]
     mov [bx],cx
     mov ax,3030h
     mov [di],ax
-
+    ;update the checkmates as the movement may cause any changes
     call UpdateCheck
+    ;if there was a selected piece by the opponent update its valid-moves&attacks as the movement may cause any changes
+    cmp hx2,0
+    jne G
+    ret
+    G:
+    lea si, ValidMoves2
+    ClearValidMoves2        
+    lea si, ValidAttacks2
+    ClearValidAttacks2
+    mov ch,hx2
+    mov cl,hy2
+    call GetValidMoves
+    
     ret
 Move_Piece ENDP
 
 Move_Piece2 PROC
-
-    mov al, hx2
-    mov ah,0
-    mov bl, 2
-    mul bl
-    mov bh, al
-
-      
-    mov al, hy2
-    mov ah,0
-    mov bl, 16
-    mul bl    
-
-    add al, bh
-    mov si, ax
-    mov ax, 0
-    lea bx, CoolDownPieces
-    cmp [word ptr bx + si], ax
-    je MP_move2
-    ret
-
-    MP_move2:
 
     mov al, px2
     mov ah,0
@@ -814,7 +926,6 @@ Move_Piece2 PROC
 
     mov ax,1
     mov [word ptr bx + si], ax
-      
 
     mov ch,hx2
     mov cl,hy2
@@ -848,8 +959,20 @@ Move_Piece2 PROC
 
     call UpdateCheck
 
-      
+    cmp hx,0
+    jne G1
     ret
+    G1:
+        lea si, ValidMoves
+        ClearValidMoves         
+        lea si, ValidAttacks
+        ClearValidAttacks
+
+        mov ch,hx
+        mov cl,hy
+        call GetValidMoves
+    ret
+      
 Move_Piece2 ENDP
 
 ;Clears an array and replace all elements with $
@@ -2469,6 +2592,17 @@ UpdateCheck PROC
         mov dl, '1'
         int 21h
 
+        mov ah,2
+        mov dl, 'W'
+        int 21h 
+        mov ah,2
+        mov dl, 'I'
+        int 21h 
+        mov ah,2
+        mov dl, Winner
+        add dl, 48
+        int 21h 
+
         ret
 
         NotCheck3:
@@ -2478,6 +2612,19 @@ UpdateCheck PROC
         mov ah,2
         mov dl, '0'
         int 21h
+        
+
+        mov ah,2
+        mov dl, 'W'
+        int 21h 
+        mov ah,2
+        mov dl, 'I'
+        int 21h 
+        mov ah,2
+        mov dl, Winner
+        add dl, 48
+        int 21h 
+
     ret
 UpdateCheck ENDP
 

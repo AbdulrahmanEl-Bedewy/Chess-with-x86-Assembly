@@ -18,6 +18,8 @@ EXTRN ValidMoves2:byte
 EXTRN ValidAttacks2:byte
 EXTRN B_DeadPiece:byte
 EXTRN W_DeadPiece:byte
+EXTRN px:byte
+EXTRN py:byte
 include Macro.inc
 .286
 .Model Small
@@ -195,33 +197,125 @@ LoadAssets PROC far
     ret
 LoadAssets ENDP
 
+PrintNumber MACRO   
+    pusha
+       mov bl,10
+       ; mov al,ans
+        mov ah,0
+        div bl
+        push ax
+        mov ah,0
+        div bl  
+        
+        mov dl, ah
+        mov ah,2       
+        add dl,48
+        int 21h      
+        
+        
+        pop ax
+        mov dl, ah
+        mov ah,2       
+        add dl,48
+        int 21h  
+ 
+   popa  
+ENDM
+
 ;draw square // for highlighting 
-DrawSquare PROC FAR ; put y in al
+ DrawSquare PROC FAR ; put y in al
                 ; x in bl
                 ; color in dl
     pusha
     push dx
+
+    ; pusha
+    ;     mov ah,2
+    ;     mov dl, 'B'
+    ;     int 21h 
+    ; popa
+
+    ;push ax
+    ;push bx
+    ;============
+    ;calculating the position in video memory that correspond to the given coordinates
     mov AH,0
     mov BH,0
 
-    mov Cx, 20D
+    mov Cx, 20D ; since each square is 20px by 20px to calculate the number of rows to move down in the video memory
     mul Cx
-    mov Cx, 320D
+    push ax
+    mov Cx, 320D; each row is 320 px so to move down one row we need to add 320
     mul Cx
     mov Di, Ax
     
+    ; add the horizontal offset in the row.  
     mov Ax,Bx
-    mov Cx, 20D
+    mov Cx, 20D 
     mul Cx
+    push ax
     add Di, AX
-    add Di , 60
+    add Di , 60 ; the whole board has an offset of 60px from the left
 
     
-    MOV BL, 20d
-
     mov ax,0A000h
     mov es,ax
+    pop bx
+    pop ax
+    add bx, 60
+
+    ;get the pixel color of top left corner
+    mov cx, bx
+    add cx, 1
+    mov dx, ax
+    add dx, 2
+    mov bh,0
+    mov ah, 0Dh
+    int 10h
+
+    ;PrintNumber
+    
+    ;compare the color of the upper left corner to that of a normal board square i.e. white or black
+    cmp al, 0
+    je DrawSolidColor
+    cmp al, 0Fh
+    je DrawSolidColor
+    
+    push ax
+    ; ;get the pixel color of top right corner
+    add cx, 16
+    ;add dx, 1 
+    mov bh,0
+    mov ah, 0Dh
+    int 10h
+
+    pop bx
     pop dx
+    ;compare the color of the upper left and right corners if equal then the square had only 1 color previously 
+    ;and now we need draw a second one 
+
+    ;if the square already contains 1/2 colors compare the color we want to draw in dl, 
+    ;if it is equal to one of the 2 colors then no need to draw again
+    cmp al, dl ; al is the upper trianle color, bl is the lower triangle color, dl is the new color to be drawn
+    je NoDraw
+    cmp bl, dl
+    je NoDraw
+
+    cmp al,bl
+    je Draw2MIxedColors
+
+
+    ;the square has 2 colors and neither is equal to the one we want to draw which is stored in dl,
+    ;we need to draw 3 colors in the square
+    jmp Draw3MIxedColors
+
+    NoDraw:
+    popa
+    ret 
+
+    DrawSolidColor:
+    pop dx
+    MOV BL, 20d 
     mov al,dl
     Square:  ; draw 1 square
         ;mov al,4dh
@@ -231,9 +325,93 @@ DrawSquare PROC FAR ; put y in al
         ADD DI,320D
         DEC BL
     JNZ Square
+    
+    ; mov ah,2
+    ; mov dl, 'C'
+    ; int 21h 
     popa
     ret
-DrawSquare ENDP
+
+    Draw2MIxedColors:
+    ; we need to draw the second color on the right side
+    ; draws a triangle in the upper right part of the square of color (dl)
+    ; _____
+    ;|\_   |   
+    ;|  \_ |   
+    ;|____\|
+    ; so the upper part is the new color and lower part is the previous color
+    ;pop dx
+    
+    MOV ah, 20d
+    mov bx, 20
+    mov ch, 0
+    mov al,dl
+    Square2:  ; draw 1/2 square
+        ;mov al,4dh
+        mov cx, bx
+        rep STOSB
+        dec bx
+        SUB DI,bx
+        ADD DI,320D
+        DEC ah
+    JNZ Square2
+    
+    ; mov ah,2
+    ; mov dl, 'D'
+    ; int 21h 
+    popa
+    ret
+
+    Draw3MIxedColors:
+    ; we need to draw the third color on the right side
+    ; cover up part of the existing colors to create a triangle at the top of color (al)
+    ; and a trapezium on left of color (bl) and trapezium on right of color (dl)
+    
+        ; draws a triangle in the upper right part of the square   
+        ;_________
+        ;|       /|
+        ;|      /_|
+        ;|________|
+        add di,20     
+        MOV ah, 10d
+        mov bx, 0
+        mov ch, 0
+        mov al,dl
+        Square6:  ; draw 1/2 square
+            ;mov al,4dh
+            mov cx, bx
+            rep STOSB
+            inc bx
+            SUB DI,bx
+            ADD DI,320D
+            DEC ah
+        JNZ Square6
+        ;inc di
+
+        ; draws a small square in the lower right part
+        ; ________
+        ;|        |
+        ;|      __|
+        ;|_____|__|
+        MOV ah, 10d
+    ; mov bx, 1
+        mov ch, 0
+        mov al,dl
+        Square5:  ; 
+            ;mov al,4dh
+            mov cx, 10
+            rep STOSB
+            SUB DI,10
+            ADD DI,320D
+            inc bx
+            DEC ah
+        JNZ Square5
+   
+
+    ;pop dx
+    popa
+     ret
+ DrawSquare ENDP
 
 DrawPiece PROC  ; load cx:dx starting position x:y col:row 1-8:1-8
     mov AH,0
@@ -662,7 +840,7 @@ DrawRightPiece PROC
 DrawRightPiece ENDP
 
 ;takes position in CX
-;el rakam f al
+;takes the picture index to draw in al
 DrawCooldown PROC FAR
     pusha
     mov bl, 0
