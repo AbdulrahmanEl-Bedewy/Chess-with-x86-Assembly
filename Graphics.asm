@@ -76,18 +76,6 @@ cooldown6Data DB 20*20 dup(0)
 cooldown7Data DB 20*20 dup(0)
 cooldown8Data DB 20*20 dup(0)
 
-B_rook db "B0"
-W_rook db "W0"
-B_knight db "B1"
-W_knight db "W1"
-B_bishop db "B2"
-W_bishop db "W2"
-B_queen db "B3"
-W_queen db "W3"
-B_king db "B4"
-W_king db "W4"
-B_pawn db "B5"
-W_pawn db "W5"
 
 .Code
 
@@ -845,7 +833,7 @@ DrawCooldown PROC FAR
     pusha
     mov bl, 0
     cmp al,bl
-    je DC_cd1
+    je DC_nopiece1
     inc bl
     cmp al,bl
     je DC_cd2

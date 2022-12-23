@@ -68,7 +68,7 @@ hx  db 0
 hy  db 0
 hx2 db 0
 hy2 db 0
-sq db 20 dup('$')
+
 IsKing db ?
 W_King_X db 5
 W_King_Y db 8
@@ -84,10 +84,34 @@ Prevtime dw ?
 frame db ?   
 timer dw 0 
 
-CoolDownPieces dw 64 dup(0)
+CoolDownPieces dw 64 dup(0), '$'
 
 Winner db 0
 .Code
+PrintNumber MACRO   
+    pusha
+       mov bl,10
+       ; mov al,ans
+        mov ah,0
+        div bl
+        push ax
+        mov ah,0
+        div bl  
+        
+        mov dl, ah
+        mov ah,2       
+        add dl,48
+        int 21h      
+        
+        
+        pop ax
+        mov dl, ah
+        mov ah,2       
+        add dl,48
+        int 21h  
+ 
+   popa  
+ENDM
 
 
 GameScreen PROC FAR
@@ -97,14 +121,14 @@ GameScreen PROC FAR
     
     call InitBoard
     call far ptr InitGame
-    DrawSq px, py
-    MOV ch,px
-    MOV cl,py
-    call RedrawPiece
-    DrawSq2 px2, py2
-    MOV ch,px2
-    MOV cl,py2
-    call RedrawPiece
+    ; DrawSq px, py
+    ; MOV ch,px
+    ; MOV cl,py
+    ; call RedrawPiece
+    ; DrawSq2 px2, py2
+    ; MOV ch,px2
+    ; MOV cl,py2
+    ; call RedrawPiece
 
     mov ah, 2Ch    
     int 21h
@@ -159,10 +183,9 @@ GameScreen PROC FAR
                 je CD_Lp_Skip             
 
                 call RedrawBoardSq
-                pusha
-                DrawSq px , py
-                DrawSq2 px2 , py2
-                popa
+                
+                call DrawingChecks
+
                 call DrawCooldown
                 call RedrawPiece
                 CD_Lp_Skip:
@@ -252,6 +275,17 @@ InitGame PROC Far
         call ClearList
         lea si, ValidAttacks2
         call ClearList
+
+        lea si, CoolDownPieces
+        mov cx, 128
+        mov al, 0
+        IG_Clear:
+            mov [si], al
+            inc si
+            loop IG_Clear
+         lea si, CoolDownPieces
+         mov ax, [si + 112]
+
         mov px , 1
         mov py , 8
         mov px2, 1
@@ -266,6 +300,7 @@ InitGame PROC Far
         mov B_King_Y , 1
         mov B_Check , 0
         mov W_Check , 0
+        mov winner, 0
 ; initialize the board and draws all pieces in place
         call InitBoard   
         DrawSq px, py
@@ -416,9 +451,12 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call List_Contains
         cmp al,0 ; selected pos is not a valid move
         je Check_Valid_Attack
-
-
         call Move_Piece
+
+        call ClearValidLists2
+        mov ch,hx2
+        mov cl,hy2
+        call GetValidMoves
 
         jmp H_I_ClearValidLists
         
@@ -429,8 +467,13 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             jne Skip_Check_Empty
             mov al, '0'
             cmp [di], al ; check if position is empty and not valid move or attack
-            je H_I_ClearValidLists
+            je H_I_ClearValidLists_Mid
             jmp Sel
+            ;============================
+            H_I_ClearValidLists_Mid:
+            jmp H_I_ClearValidLists
+            ;============================
+
             Skip_Check_Empty:
             mov al, 'B'
             cmp [di], al
@@ -458,14 +501,39 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov [si],bh
             mov [si+1],bl
             call Move_Piece 
+            
+            cmp hx2,0
+            je H_I_ClearValidLists
+            
+            mov ch, px
+            mov cl, py
+            cmp hx2,ch
+            jne G3
+            cmp hy2,cl
+            jne G3
+            DeselectPlayer2
+            G3:
+            call ClearValidLists2
+
+            mov ch,hx2
+            mov cl,hy2
+            call GetValidMoves
+            ;call DrawPossibleMoves
 ;==================================
 ;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
         H_I_ClearValidLists:
-            lea si, ValidMoves
-            ClearValidMoves
-            lea si, ValidAttacks
-            ClearValidAttacks
+            call ClearValidLists
+
+            cmp hx2,0
+            je HI_S1
+            DrawSq2 hx2,hy2
+            mov ch,hx2
+            mov cl,hy2
+            call RedrawPiece
+            HI_S1:
             DeselectPlayer1
+            call DrawPossibleMoves
+            call DrawPossibleAttacks
             call DrawDeadP
             ret
 
@@ -476,21 +544,11 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov cl, py
             call to_idx
             cmp [di], dl ;dl has the player type W:white or B:black
-            je Valid_Sel_mid
+            je Valid_Sel
             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
             DeselectPlayer1
-            lea si, ValidMoves
-            ClearValidMoves
-            
 
-            ;============
-            jmp Valid_Sel_Skip
-            Valid_Sel_mid: jmp Valid_Sel
-            Valid_Sel_Skip:
-            ;============
-
-            lea si, ValidAttacks
-            ClearValidAttacks
+            call ClearValidLists
 
             ret
             Valid_Sel:
@@ -514,17 +572,10 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
                 mov ax, 0
                 lea bx, CoolDownPieces
                 cmp [word ptr bx + si], ax
-                je HI_SelectNewPiece_Mid
+                je HI_SelectNewPiece
                 DeselectPlayer1
-                lea si, ValidMoves
-                ClearValidMoves
 
-                jmp HI_SelectNewPiece_Skip
-                HI_SelectNewPiece_Mid:jmp HI_SelectNewPiece
-                HI_SelectNewPiece_Skip:
-
-                lea si, ValidAttacks
-                ClearValidAttacks
+                call ClearValidLists
 
                 ret
             HI_SelectNewPiece:
@@ -538,16 +589,26 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
 
             mov hx, ch
             mov hy, cl 
-            lea si, ValidMoves
-            ClearValidMoves
-            lea si, ValidAttacks
-            ClearValidAttacks
+            call ClearValidLists
 
             mov ch, px
             mov cl, py
             call GetValidMoves
             call DrawPossibleMoves
             call DrawPossibleAttacks
+            
+            DrawSq2 px2,py2
+            mov ch, px2
+            mov cl, py2
+            call RedrawPiece
+
+            cmp hx2,0
+            je HI_S2
+            DrawSq2 hx2,hy2
+            mov ch,hx2
+            mov cl,hy2
+            call RedrawPiece
+            HI_S2:
             ret    
 HandleInput ENDP
 
@@ -662,6 +723,10 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
         je Check_Valid_Attack2
         call Move_Piece2
 
+        call ClearValidLists
+        mov ch,hx
+        mov cl,hy
+        call GetValidMoves
         jmp H_I_ClearValidLists2
         
         Check_Valid_Attack2:
@@ -671,8 +736,13 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             jne Skip_Check_Empty2
             mov al, '0'
             cmp [di], al ; check if position is empty and not valid move or attack
-            je H_I_ClearValidLists2
+            je H_I_ClearValidLists_Mid2
             jmp Sel2
+            ;============================
+            H_I_ClearValidLists_Mid2:
+            jmp H_I_ClearValidLists2
+            ;============================
+
             Skip_Check_Empty2:
             mov al, 'B'
             cmp [di], al
@@ -700,14 +770,39 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov [si],bh
             mov [si+1],bl
             call Move_Piece2 
+
+            cmp hx,0
+            je H_I_ClearValidLists2
+            
+            mov ch, px2
+            mov cl, py2
+            cmp hx,ch
+            jne G4
+            cmp hy,cl
+            jne G4
+            DeselectPlayer1
+            G4:
+            call ClearValidLists
+
+            mov ch,hx
+            mov cl,hy
+            call GetValidMoves
+            ;call DrawPossibleMoves
+                       
 ;==================================
 ;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
         H_I_ClearValidLists2:
-             lea si, ValidMoves2
-            ClearValidMoves2
-            lea si, ValidAttacks2
-            ClearValidAttacks2
+            call ClearValidLists2
+            
+            cmp hx,0
+            je HI_S3
+            DrawSq hx,hy
+            mov ch,hx
+            mov cl,hy
+            call RedrawPiece
+            HI_S3:
             DeselectPlayer2
+            call DrawPossibleMoves
             call DrawDeadP
             ret
 
@@ -718,23 +813,16 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov cl, py2
             call to_idx
             cmp [di], dl
-            je Valid_Sel_mid2
+            je Valid_Sel2
             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
             DeselectPlayer2
-             lea si, ValidMoves2
-            ClearValidMoves2
-
-            ;============
-            jmp Valid_Sel_Skip2
-            Valid_Sel_mid2: jmp Valid_Sel2
-            Valid_Sel_Skip2:
-            ;============
-
-            
-            lea si, ValidAttacks2
-            ClearValidAttacks2
-
+            call ClearValidLists2   
+             
+             mov ah,2
+            mov dl, 'Q'
+            int 21h        
             ret
+
             Valid_Sel2:
             ;Make sure the piece to be selected isn't on cooldown
                 ;Calculating the current piece's position in the piece cooldown array
@@ -756,17 +844,9 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
                 mov ax, 0
                 lea bx, CoolDownPieces
                 cmp [word ptr bx + si], ax
-                je HI_SelectNewPiece_Mid2
+                je HI_SelectNewPiece2
                 DeselectPlayer2
-                lea si, ValidMoves2
-                ClearValidMoves2
-
-                jmp HI_SelectNewPiece_Skip2
-                HI_SelectNewPiece_Mid2:jmp HI_SelectNewPiece2
-                HI_SelectNewPiece_Skip2:
-
-                lea si, ValidAttacks2
-                ClearValidAttacks2
+                call ClearValidLists2
                 ret
             HI_SelectNewPiece2:
 
@@ -780,16 +860,26 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
 
             mov hx2, ch
             mov hy2, cl 
-             lea si, ValidMoves2
-            ClearValidMoves2
-            lea si, ValidAttacks2
-            ClearValidAttacks2
+            call ClearValidLists2
 
             mov ch, px2
             mov cl, py2
             call GetValidMoves
             call DrawPossibleMoves
             call DrawPossibleAttacks
+
+            DrawSq px,py
+            mov ch, px
+            mov cl, py
+            call RedrawPiece
+
+            cmp hx,0
+            je HI_S4
+            DrawSq hx,hy
+            mov ch,hx
+            mov cl,hy
+            call RedrawPiece
+            HI_S4:
             ret    
 HandleInput2 ENDP
 
@@ -891,17 +981,6 @@ Move_Piece PROC
     ;update the checkmates as the movement may cause any changes
     call UpdateCheck
     ;if there was a selected piece by the opponent update its valid-moves&attacks as the movement may cause any changes
-    cmp hx2,0
-    jne G
-    ret
-    G:
-    lea si, ValidMoves2
-    ClearValidMoves2        
-    lea si, ValidAttacks2
-    ClearValidAttacks2
-    mov ch,hx2
-    mov cl,hy2
-    call GetValidMoves
     
     ret
 Move_Piece ENDP
@@ -959,18 +1038,7 @@ Move_Piece2 PROC
 
     call UpdateCheck
 
-    cmp hx,0
-    jne G1
-    ret
-    G1:
-        lea si, ValidMoves
-        ClearValidMoves         
-        lea si, ValidAttacks
-        ClearValidAttacks
-
-        mov ch,hx
-        mov cl,hy
-        call GetValidMoves
+    
     ret
       
 Move_Piece2 ENDP
@@ -1570,201 +1638,6 @@ Moves_pawn PROC
     popa
     ret
 Moves_pawn ENDP
-
-;GET KNIGHT MOVES
-; Moves_knight PROC
-;     pusha
-;     lea bx, ValidMoves
-;     lea si,ValidAttacks
-;     mov al,[di]
-;     mov ch,hx
-;     mov cl,hy
-
-;     ;if up is possible
-;     cmp cl,3
-;     jb Check_Down
-;     cmp ch,8
-;     je cont1
-;     inc ch
-;     sub cl,2
-;     call to_idx
-;     cmp [di],al
-;     je cont1
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove1
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp cont1
-;     addmove1:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-;     jmp cont1
-;     cont1:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp ch,1
-;     je Check_Down
-;     sub cl,2
-;     dec ch
-;     call to_idx
-;     cmp [di],al
-;     je Check_Down
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove2
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp Check_Down
-;     addmove2:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-
-;     Check_Down:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp cl,6
-;     ja Check_Right
-;     cmp ch,8
-;     je cont2
-;     inc ch
-;     add cl,2
-;     call to_idx
-;     cmp [di],al
-;     je cont2
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove3
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp cont2
-;     addmove3:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-;     jmp cont2
-;     cont2:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp ch,1
-;     je Check_Right
-;     dec ch
-;     add cl,2
-;     call to_idx
-;     cmp [di],al
-;     je Check_Right
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove4
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp Check_Right
-;     addmove4:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-
-;     Check_Right:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp ch,6
-;     ja Check_Left
-;     cmp cl,1
-;     je cont3
-;     add ch,2
-;     dec cl
-;     call to_idx
-;     cmp [di],al
-;     je cont3
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove5
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp cont3
-;     addmove5:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-;     cont3:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp cl,8
-;     je Check_Left
-;     add ch,2
-;     inc cl
-;     call to_idx
-;     cmp [di],al
-;     je Check_Left
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove6
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp Check_Left
-;     addmove6:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-
-;     Check_Left:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp ch,3
-;     jb No_Kt
-;     cmp cl,1
-;     je cont4
-;     sub ch,2
-;     dec cl
-;     call to_idx
-;     cmp [di],al
-;     je cont4
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove7
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp cont4
-;     addmove7:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-;     cont4:
-;     mov ch,hx
-;     mov cl,hy
-;     cmp cl,8
-;     je No_Kt
-;     sub ch,2
-;     inc cl
-;     call to_idx
-;     cmp [di],al
-;     je No_Kt
-;     mov ah,'0'
-;     cmp [di],ah
-;     je addmove8
-;     mov [si],ch
-;     mov [si+1],cl
-;     add si,2
-;     jmp No_Kt
-;     addmove8:
-;     mov [bx],ch
-;     mov [bx+1],cl
-;     add bx,2
-    
-    
-;     No_Kt:
-;     popa
-;     ret
-; Moves_knight ENDP
 
 ;GET KNIGHT MOVES
 Moves_knight PROC
@@ -2656,4 +2529,146 @@ GetFrameTime PROC far
         mov prevs, dh
         ret
 GetFrameTime ENDP
+
+ClearValidLists proc 
+    lea si,ValidMoves
+    mov al,'$'
+    Clear1:
+        cmp [si], al
+        je Cleared1
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        ;  call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear1
+    Cleared1:
+    DrawSq px,py
+    mov ch,px
+    mov cl,py
+    call RedrawPiece
+    
+
+    lea si, ValidAttacks
+    mov al,'$'
+    Clear2:
+        cmp [si], al
+        je Cleared2
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear2
+    Cleared2:
+    DrawSq px,py
+    mov ch,px
+    mov cl,py
+    call RedrawPiece
+
+    ret
+ClearValidLists ENDP
+
+ClearValidLists2 proc 
+    
+
+    lea si,ValidMoves2
+    mov al,'$'
+    Clear3:
+        cmp [si], al
+        je Cleared3
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        ;  call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear3
+    Cleared3:
+    DrawSq2 px2,py2
+    mov ch,px2
+    mov cl,py2
+    call RedrawPiece
+
+
+    lea si, ValidAttacks2
+    mov al,'$'
+    Clear4:
+        cmp [si], al
+        je Cleared4
+        mov ch, [si]
+        mov cl, [si+1]
+        call RedrawBoardSq
+        call RedrawPiece
+        mov [si], al
+        mov [si+1], al
+        add si,2
+        jmp Clear4
+    Cleared4:
+    DrawSq2 px2,py2
+    mov ch,px2
+    mov cl,py2
+    call RedrawPiece
+
+    ret
+ClearValidLists2 ENDP
+
+
+;Utility function used in GameScreen proc. to draw the required square when a piece is in cooldown
+DrawingChecks PROC
+    pusha
+    ;check if current position has one of the selectors or both
+    ; if so then draw it
+        cmp ch, px
+        jne GS_CheckPX2
+        cmp cl, py
+        jne GS_CheckPX2
+        DrawSq px , py
+        jmp GS_CheckAttack
+
+        GS_CheckPX2:
+
+        cmp ch, px2
+        jne GS_CheckAttack
+        cmp cl, py2
+        jne GS_CheckAttack
+        DrawSq2 px2 , py2
+        jmp GS_CheckAttack
+
+        ;check if the current position is a valid attack for either black or white
+        ;if so then draw the corresponding attack color
+        GS_CheckAttack:
+        lea si,ValidAttacks
+        call List_Contains
+
+        cmp al, 1
+        je Drawattack_1
+        
+        lea si,ValidAttacks2
+        call List_Contains
+
+        cmp al, 0
+        je GS_Skip1
+        mov bl,ch
+        mov al,cl
+        mov dl, 6Bh
+        call DrawSquare
+        popa
+        ret
+        Drawattack_1:
+        mov bl,ch
+        mov al,cl
+        mov dl, 4h
+        call DrawSquare
+
+    GS_Skip1:
+    popa
+    ret
+DrawingChecks ENDP
+
 END ;MAIN
