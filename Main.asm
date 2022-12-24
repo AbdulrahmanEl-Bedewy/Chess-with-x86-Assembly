@@ -32,10 +32,10 @@ Main PROC
 
     call LoadAssets
     
-    ; lea bx, name1
-    ; call GetNameScreen
-    ; lea bx,name2
-    ; call GetNameScreen
+    lea bx, name1
+    call GetNameScreen
+    lea bx,name2
+    call GetNameScreen
     
     MainMenu:
         call MainMenuScreen

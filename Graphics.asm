@@ -10,6 +10,8 @@ Public DrawPossibleMoves
 Public DrawPossibleAttacks
 Public DrawDeadP
 Public DrawCooldown
+
+
 EXTRN to_idx:FAR
 EXTRN chessBoard:byte
 EXTRN ValidMoves:byte
