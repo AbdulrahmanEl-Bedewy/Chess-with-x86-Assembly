@@ -2524,10 +2524,10 @@ ClearValidLists proc
         add si,2
         jmp Clear1
     Cleared1:
-    DrawSq px,py
-    mov ch,px
-    mov cl,py
-    call RedrawPiece
+    ; DrawSq px,py
+    ; mov ch,px
+    ; mov cl,py
+    ; call RedrawPiece
     
 
     lea si, ValidAttacks
@@ -2547,6 +2547,11 @@ ClearValidLists proc
     DrawSq px,py
     mov ch,px
     mov cl,py
+    call RedrawPiece
+
+    DrawSq2 px2,py2
+    mov ch,px2
+    mov cl,py2
     call RedrawPiece
 
     ret
@@ -2569,10 +2574,10 @@ ClearValidLists2 proc
         add si,2
         jmp Clear3
     Cleared3:
-    DrawSq2 px2,py2
-    mov ch,px2
-    mov cl,py2
-    call RedrawPiece
+    ; DrawSq2 px2,py2
+    ; mov ch,px2
+    ; mov cl,py2
+    ; call RedrawPiece
 
 
     lea si, ValidAttacks2
@@ -2592,6 +2597,10 @@ ClearValidLists2 proc
     DrawSq2 px2,py2
     mov ch,px2
     mov cl,py2
+    call RedrawPiece
+    DrawSq px,py
+    mov ch,px
+    mov cl,py
     call RedrawPiece
 
     ret
