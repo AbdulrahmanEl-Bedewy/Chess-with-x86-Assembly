@@ -87,32 +87,16 @@ timer dw 0
 CoolDownPieces dw 64 dup(0), '$'
 
 Winner db 0
-.Code
-PrintNumber MACRO   
-    pusha
-       mov bl,10
-       ; mov al,ans
-        mov ah,0
-        div bl
-        push ax
-        mov ah,0
-        div bl  
-        
-        mov dl, ah
-        mov ah,2       
-        add dl,48
-        int 21h      
-        
-        
-        pop ax
-        mov dl, ah
-        mov ah,2       
-        add dl,48
-        int 21h  
- 
-   popa  
-ENDM
 
+temp db 0
+; there is some kind of error when printing these messages using int 10h/13h
+Winner_MessageB db 'Black Wins'
+Winner_MessageW db 'White Wins'
+; but using these strings is fine idk why
+msg1 db " Black Wins "
+msg2 db " White Wins "
+
+.Code
 
 GameScreen PROC FAR
     MOV AX , @DATA
@@ -229,6 +213,28 @@ GameScreen PROC FAR
         cmp winner,0
         je GameLP1
         ; Press any key to exit
+        ; mov ah,2
+        ; mov dx,1407h
+        ; int 10h
+        cmp winner,1
+        je White_Wins
+        lea bp, msg1
+        jmp DispMsg
+        White_Wins:
+        lea bp, msg2
+        DispMsg:
+         mov al, 1
+        mov bh, 0
+        mov bl, 4
+        mov cx, 12  
+        mov dl, 14
+        mov dh, 12
+        push ds
+        pop es
+        ;mov bp, offset msg
+        mov ah, 13h
+        int 10h
+            
         MOV AH , 0
         INT 16h
         ret
@@ -277,14 +283,14 @@ InitGame PROC Far
         call ClearList
 
         lea si, CoolDownPieces
-        mov cx, 128
-        mov al, 0
+        mov cx, 64
+        mov ax, 0
         IG_Clear:
-            mov [si], al
-            inc si
+            mov [si], ax
+            add si,2
             loop IG_Clear
          lea si, CoolDownPieces
-         mov ax, [si + 112]
+         ;mov ax, [si + 112]
 
         mov px , 1
         mov py , 8
@@ -816,11 +822,7 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             je Valid_Sel2
             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
             DeselectPlayer2
-            call ClearValidLists2   
-             
-             mov ah,2
-            mov dl, 'Q'
-            int 21h        
+            call ClearValidLists2        
             ret
 
             Valid_Sel2:
@@ -2463,18 +2465,7 @@ UpdateCheck PROC
         int 21h
         mov ah,2
         mov dl, '1'
-        int 21h
-
-        mov ah,2
-        mov dl, 'W'
-        int 21h 
-        mov ah,2
-        mov dl, 'I'
-        int 21h 
-        mov ah,2
-        mov dl, Winner
-        add dl, 48
-        int 21h 
+        int 21h       
 
         ret
 
@@ -2486,18 +2477,6 @@ UpdateCheck PROC
         mov dl, '0'
         int 21h
         
-
-        mov ah,2
-        mov dl, 'W'
-        int 21h 
-        mov ah,2
-        mov dl, 'I'
-        int 21h 
-        mov ah,2
-        mov dl, Winner
-        add dl, 48
-        int 21h 
-
     ret
 UpdateCheck ENDP
 
@@ -2629,7 +2608,7 @@ DrawingChecks PROC
         cmp cl, py
         jne GS_CheckPX2
         DrawSq px , py
-        jmp GS_CheckAttack
+        ;jmp GS_CheckAttack
 
         GS_CheckPX2:
 
@@ -2638,7 +2617,7 @@ DrawingChecks PROC
         cmp cl, py2
         jne GS_CheckAttack
         DrawSq2 px2 , py2
-        jmp GS_CheckAttack
+        ;jmp GS_CheckAttack
 
         ;check if the current position is a valid attack for either black or white
         ;if so then draw the corresponding attack color
