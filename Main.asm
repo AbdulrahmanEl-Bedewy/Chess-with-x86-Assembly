@@ -1,5 +1,7 @@
 EXTRN GameScreen:FAR
 EXTRN LoadAssets:FAR
+Public name1
+Public name2
 
 
 
@@ -12,7 +14,7 @@ EXTRN LoadAssets:FAR
     name1 db 16 dup("$")
     name2 db 16 dup("$")
     Enter_Name db 'Please Enter Your Name','$'
-    Press_Enter db 'Press any button To contiue','$'
+    Press_Enter db 'Press any button To contiue','$';27
     Greeting db 'Hello $'
     ChatMsg db 'To start chatting press F1','$'; 25
     StartGameMsg db 'To start the game press F2','$';26
@@ -167,7 +169,7 @@ GetNameScreen PROC
 
     MOV AH,2
     MOV BH,00
-    MOV DL,39
+    MOV DL,27
     MOV DH,12
     INT 10H
     ; print msg 'press enter to cont'

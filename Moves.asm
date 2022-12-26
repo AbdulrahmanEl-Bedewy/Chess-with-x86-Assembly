@@ -1,11 +1,37 @@
+EXTRN InitBoard:FAR
+EXTRN DrawSquare:FAR
+EXTRN DrawPiece:FAR
+EXTRN DrawPieces:FAR
+EXTRN DrawBoard:FAR
+EXTRN RedrawBoardSq:FAR
+EXTRN RedrawPiece:FAR
+EXTRN DrawPossibleMoves:FAR
+EXTRN DrawPossibleAttacks:FAR
+EXTRN DrawDeadP:FAR
+EXTRN DrawCooldown:FAR
+EXTRN LoadAssets:FAR
+
+EXTRN DrawRightPiece:FAR
+EXTRN w_rookData:byte
+
 .286
 .Model small
 .Stack 100h
 .Data
-timer db 0
-prev db ? 
+
+prevms db ? 
 prevs db ?  
-frame db 0
+Prevtime dw ?
+frame db ?   
+timer dw 0  
+x dw 0
+y dw 0
+startx db 0
+starty db 0
+endx db 20
+endy db 40
+vdx db 20
+vdy db 40
 .Code
 ;print el rakam el f Al
 PrintNumber MACRO   
@@ -36,177 +62,296 @@ ENDM
 ;description
 Main PROC    
     mov ax,@data
-    mov ds,ax
-              
+    mov ds,ax      
+    mov ax,0A000h
+    mov es,ax      
 
+    ;clears screen
+    mov ax, 3
+    int 10h  
+    
+    mov al, 13h
+	mov ah, 0
+	int 10h 
+
+    call far ptr LoadAssets
+    ; call far ptr InitBoard
+
+ ;MAIN GAME LOOP
+     mov ah, 2Ch    
+    int 21h
+    mov al,dh ; move el seconds
+    mov ah,0
+
+        mov bl, 100
+        mul bl
+        mov bl, cl
+        mov bh, 0
+        add ax , bx
+        mov bx, ax
+        mov Prevtime, bx
+        mov prevs, dh
+        cmp dh, prevs
+mov ax,0
+mov cx,x
+mov dx ,y
+lea bx, w_rookData
+call far ptr DrawPiece_px
+
+  Calculate1:
+    call far ptr GetFrameTime 
+    
+    cmp x, 20; endx
+    ja s2
+    mov bl,vdx
+    mul bl
+    mov bl,100
+    div bl
+    mov ah,0
+    add x,ax
+    
+    s2:
+    cmp y, 40;endy
+    ja s
+    mov bl,vdy
+    mul bl
+    mov bl,100
+    div bl
+    mov ah,0
+    add y,ax
+    s:
+    ;add Y,ax
+    ; cmp x, 168
+    ; jae ending
+    mov cx,x
+    mov dx ,y
+    lea bx, w_rookData
+    call far ptr DrawPiece_px
+    cmp x, 20;endx
+    jb Calculate1
+    cmp y, 40;endy
+    jb Calculate1
+
+     
         
-              
+;   Calculate1:
+    ;      call far ptr GetFrameTime 
+    ;      mov al,frame
+    ;      mov ah,0
+    ;      add timer, ax
+    ;      cmp timer, 700
+    ;      jae ending
+
+
+    ;      ;PrintNumber
+;      jmp Calculate1
+     
+       
+    ending:
+    mov cx, 168
+    mov dx ,168
+    lea bx, w_rookData
+    call far ptr DrawPiece_px
+    mov ah,2
+    mov dl, 'D'
+    int 21h 
+
+    ; return control to operating system
+    MOV AH , 4ch
+    INT 21H
+
+    hlt
+Main ENDP
+
+;description
+GetFrameTime PROC
     mov ah, 2Ch    
     int 21h
-    ;add timer    
-    mov prev,dl
-    mov prevs, dh
-    mov al, ch
-    sub al,12
-    PrintNumber
-
-    mov dl, '-'
-    mov ah,2       
-    int 21h 
-
-    mov al,cl
-    PrintNumber
-
-    mov dl, '-'
-    mov ah,2       
-    int 21h 
-
-    mov al,dh
-    PrintNumber
-
-    mov dl, '-'
-    mov ah,2       
-    int 21h 
-
-    mov al,dl
-    PrintNumber
-
-    lp:
-        mov ah, 2Ch    
-        int 21h
-
+    mov al,dh ; move el seconds
+    mov ah,0
+    Calculate:
+        mov bl, 100
+        mul bl
+        mov bl, dl
+        mov bh, 0
+        add ax , bx
+        mov bx, ax        
+    
         cmp dh, prevs
-        je lp
-
-        mov prev, dl
-push dx
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-        mov dl, 8
-        mov ah,2       
-        int 21h
-
-        mov al, ch
-        sub al,12
-        PrintNumber
-
-        mov dl, '-'
-        mov ah,2       
-        int 21h 
-
-        mov al,cl
-        PrintNumber
-
-        mov dl, '-'
-        mov ah,2       
-        int 21h 
-
-        mov al,dh
-        PrintNumber
+        jae DontAddMin
         
-        mov dl, '-'
-        mov ah,2       
-        int 21h 
-pop dx
-        mov al,dl
-        PrintNumber
-        jmp lp 
-        
-        hlt
+        AddMin:
+            add ax, 6000
+        DontAddMin:            
+        sub ax, Prevtime 
 
-        ; inc frame  
-        ; cmp dh, prevs
-        ; je SameSecond
-        
-        ; add dl,100
+        mov frame, al
+        mov Prevtime, bx   
+        mov prevs, dh
+        ret
+GetFrameTime ENDP
 
-        ; SameSecond:
-        ; sub dl,prev
-        ; add timer, dl
+;description
+DrawRec PROC
+	
 
-        ; cmp timer, 100
-        ; jb lp
+    mov al, 4
+    mov bl, 20 
+    mov dx, y
+    sidebar1:  ; draw 1 square
+        mov cx, x
+        mov bh,20
+    kp:    
+        mov ah, 0ch
+        int 10h     ; set pixel.
+        inc cx
+        dec bh
+        jnz kp
+    inc dx
+    dec bl
+    JNZ sidebar1
+    ret
+DrawRec ENDP
 
+
+DrawPiece_px PROC  ; load cx:dx starting position x:y col:row 1-8:1-8
+    mov AH,0
+    mov al,cl
+
+
+    MOV AH,0ch    
+    mov Si, Cx
+    add Si, 20
+    mov Di, dx
+    add Di,20
+    ; Drawing loop
+    drawLoop:
+        MOV AL,[BX]
+        ;MOV AL, 4dh
+        cmp AL, 0fh
+        jz skip
+        INT 10h
+        skip: 
+        INC CX
+        INC BX
+        CMP CX, Si
+    JNE drawLoop 
         
-        ; second:
-        ; ; el mafrood print y3ny  
-        ; mov dl, 8
-        ; mov ah,2       
-        ; int 21h
-        ; mov dl, 8
-        ; mov ah,2       
-        ; int 21h
-        ; mov dl, 8
-        ; mov ah,2       
-        ; int 21h
-        
-        ; mov bl,10
-        ; mov al,frame
-        ; mov ah,0
-        ; div bl
-        ; push ax
-        ; mov ah,0
-        ; div bl  
-        ; push ax  
-        ; mov dl, al
-        ; mov ah,2       
-        ; add dl,48
-        ; int 21h      
-        ; pop ax
-        ; mov dl, ah
-        ; mov ah,2       
-        ; add dl,48
-        ; int 21h
-        
-        ; pop ax
-        ; mov dl, ah
-        ; mov ah,2       
-        ; add dl,48
-        ; int 21h 
-        ; mov timer,0
-        ; mov frame , 0
-        ; jmp lp
-        
+        MOV CX , Si
+        Sub CX, 20
+        INC DX
+        CMP DX , Di
+    JNE drawLoop
+
+    ret
+DrawPiece_px ENDP
+
+;description
+; RedrawBoardSq_px PROC FAR ; load ch:cl starting position x:y col:row 1-8:1-8
+;     pusha
+
+;     Lea Bx,  BoardData
     
+;     mov AH,0
+;     mov al,cl
+;     push cx
+
+
+;     mov Si, 198D
+;     mul Si
+;     ;mov Dx, Ax
+;     add bx,ax
+
+;     mov Al,ch
+;     mov ah,0
+;     mov cl, 20D
+;     mul cl
+;  ;   mov Cx, Ax
+;     add bx,ax
+; ;    add Cx , 80
+
+;     pop cx
+;     mov AH,0
+;     mov al,cl
+;     mov Si, 20D
+;     mul Si
+;     mov Dx, Ax
+;     ;add bx,ax
+
+;     mov Al,ch
+;     mov ah,0
+;     mov cl, 20D
+;     mul cl
+;     mov Cx, Ax
+;     ;add bx,ax
+;     add Cx , 60
+
+;     MOV AH,0ch    
+;     mov Si, Cx
+;     add Si, 20
+;     mov Di, dx
+;     add Di,20
+
     
-Main ENDP
+;     ; Drawing loop
+;     drawLoop4:
+;         MOV AL,[BX]
+;         INT 10h 
+;         INC CX
+;         INC BX
+;         CMP CX, Si
+;     JNE drawLoop4             
+;         ;MOV CX , Si
+;         Sub CX, 20
+;         Sub bX, 20
+;         add bx, 198
+;         INC DX
+;         CMP DX , Di
+;     JNE drawLoop4
+;     popa
+;     ret
+; RedrawBoardSq ENDP
+
+; RedrawPiece_px PROC FAR
+;     pusha
+;     ;check if square had piece and draw it
+    
+;     ;Gets start idx of Position (CX) and puts it in DI
+;     ;call far ptr to_idx
+;     dec cl
+;     dec ch
+;     Lea di, chessBoard
+;     mov al,cl
+;     mov ah,0
+;     mov bl,16d
+;     mul bl
+;     add di, ax
+
+;     mov al,ch
+;     mov ah,0
+;     mov bl,2d
+;     mul bl
+;     add di,ax
+
+
+;     mov bl,'0'
+;     cmp [di],bl
+;     je nopiece
+;     inc cl
+;     inc ch
+;     call far ptr DrawRightPiece
+
+;     ;no piece
+;     nopiece: 
+;     popa
+;     ret
+; RedrawPiece ENDP
+
+
+
+
+
+
 
 END main
 
@@ -248,10 +393,10 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
     add py,1
 
     Draw_Highlighted:
-        call RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
-        call DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
-        call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
-        call RedrawPiece ; redraw piece if any at the old location
+        call far ptr RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
+        call far ptr DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
+        call far ptr DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
+        call far ptr RedrawPiece ; redraw piece if any at the old location
 
         cmp hx,0
         je skip
@@ -259,12 +404,12 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         DrawSq hx, hy
         mov ch, hx
         mov cl, hy
-        call RedrawPiece
+        call far ptr RedrawPiece
         skip:
         mov ch,px
         mov cl,py
         DrawSq px, py ;draw higlighting of new square
-        call RedrawPiece ; 
+        call far ptr RedrawPiece ; 
 
     ret
 
@@ -273,17 +418,17 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
     ;check if valid move
         mov ch,px
         mov cl,py
-        call to_idx
+        call far ptr to_idx
         lea si,ValidMoves
-        call List_Contains
+        call far ptr List_Contains
         cmp al,0 ; selected pos is not a valid move
         je Check_Valid_Attack
-        call Move_Piece
+        call far ptr Move_Piece
         jmp H_I_ClearValidLists
         
         Check_Valid_Attack:
             lea si, ValidAttacks
-            call List_Contains
+            call far ptr List_Contains
             cmp al,0 ; selected pos is not a valid attack 
             jne Skip_Check_Empty
             mov al,0
@@ -309,20 +454,20 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
             mov bl,[di+1]
             mov [si],bh
             mov [si+1],bl
-            call Move_Piece 
+            call far ptr Move_Piece 
             jmp H_I_ClearValidLists
 
         H_I_ClearValidLists:
         lea si,ValidMoves
-        Call ClearList
+        call far ptr ClearList
         lea si, ValidAttacks
-        call ClearList
+        call far ptr ClearList
         ;===============
         ;General deselects piece in hx:hy
         mov ch, hx
         mov cl, hy
-        call RedrawBoardSq
-        call RedrawPiece
+        call far ptr RedrawBoardSq
+        call far ptr RedrawPiece
         mov hx,0
         mov hy,0
         ;===============
@@ -331,8 +476,8 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         Sel:
             mov ch, hx
             mov cl, hy
-            call RedrawBoardSq
-            call RedrawPiece
+            call far ptr RedrawBoardSq
+            call far ptr RedrawPiece
 
             mov ch, px
             mov cl, py
@@ -340,12 +485,12 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
             mov hx, ch
             mov hy, cl 
             lea si, ValidMoves
-            Call ClearList
+            call far ptr ClearList
             lea si, ValidAttacks
-            call ClearList
-            call GetValidMoves
-            call DrawPossibleMoves
-            call DrawPossibleAttacks
+            call far ptr ClearList
+            call far ptr GetValidMoves
+            call far ptr DrawPossibleMoves
+            call far ptr DrawPossibleAttacks
             ret
     
 HandleInput ENDP
@@ -383,11 +528,11 @@ List_Contains ENDP
 Move_Piece PROC
     mov ch,px
     mov cl,py
-    call to_idx
+    call far ptr to_idx
     mov bx,di
     mov ch,hx
     mov cl,hy
-    call to_idx
+    call far ptr to_idx
     mov cx,[di]
     mov [bx],cx
     mov ax,3030h
@@ -404,8 +549,8 @@ ClearList PROC
         je Cleared
         mov ch, [si]
         mov cl, [si+1]
-        call RedrawBoardSq
-        call RedrawPiece
+        call far ptr RedrawBoardSq
+        call far ptr RedrawPiece
         mov [si], al
         mov [si+1], al
         add si,2
@@ -478,10 +623,10 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         mov dl, '3'
         int 21h  
 
-        call RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
-        call DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
-        call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
-        call RedrawPiece ; redraw piece if any at the old location
+        call far ptr RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
+        call far ptr DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
+        call far ptr DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
+        call far ptr RedrawPiece ; redraw piece if any at the old location
 
         mov ah,2
         mov dl, '4'
@@ -493,7 +638,7 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         DrawSq hx, hy
         mov ch, hx
         mov cl, hy
-        call RedrawPiece
+        call far ptr RedrawPiece
         skip:
          mov ah,2
         mov dl, '5'
@@ -502,7 +647,7 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         mov ch,px
         mov cl,py
         DrawSq px, py ;draw higlighting of new square
-        call RedrawPiece ; 
+        call far ptr RedrawPiece ; 
         popa
         ret
 
@@ -513,12 +658,12 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
     ;check if valid move
         mov ch,px
         mov cl,py
-        call to_idx
+        call far ptr to_idx
         lea si,ValidMoves
-        call List_Contains
+        call far ptr List_Contains
         cmp al,0 ; selected pos is not a valid move
         je Check_Valid_Attack
-        call Move_Piece
+        call far ptr Move_Piece
 
          mov ah,2
         mov dl, '9'
@@ -528,7 +673,7 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         
         Check_Valid_Attack:
             lea si, ValidAttacks
-            call List_Contains
+            call far ptr List_Contains
             cmp al,0 ; selected pos is not a valid attack 
             jne Skip_Check_Empty
             mov al, '0'
@@ -554,7 +699,7 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
             mov bl,[di+1]
             mov [si],bh
             mov [si+1],bl
-            call Move_Piece 
+            call far ptr Move_Piece 
             ;jmp H_I_ClearValidLists
 ;==================================
 ;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
@@ -573,12 +718,12 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
         ;General deselects piece in hx:hy
         mov ch, hx
         mov cl, hy
-        call RedrawBoardSq
-        call RedrawPiece
+        call far ptr RedrawBoardSq
+        call far ptr RedrawPiece
         mov hx,0
         mov hy,0
         ;===============
-        call DrawDeadP
+        call far ptr DrawDeadP
         popa
         ret
 
@@ -591,8 +736,8 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
 
             mov ch, hx
             mov cl, hy
-            call RedrawBoardSq
-            call RedrawPiece
+            call far ptr RedrawBoardSq
+            call far ptr RedrawPiece
 
             mov ch, px
             mov cl, py
@@ -604,9 +749,9 @@ HandleInput PROC ; the user input is in ax => al:ascii ah:scan code
 
             mov ch, px
             mov cl, py
-            call GetValidMoves
-            call DrawPossibleMoves
-            call DrawPossibleAttacks
+            call far ptr GetValidMoves
+            call far ptr DrawPossibleMoves
+            call far ptr DrawPossibleAttacks
             popa
             ret
     
@@ -620,7 +765,7 @@ HandleInput ENDP
 ;     MOV AL, 13h
 ;     INT 10h
 	
-;     ;call Init
+;     ;call far ptr Init
 	
 ;     ; Press any key to exit
 ;     MOV AH , 0
@@ -639,7 +784,7 @@ HandleInput ENDP
 ;     hlt
 ; MAIN ENDP
 
-        ; call InitGame
+        ; call far ptr InitGame
         ; GameLoop:
 
         ;     mov ah,1
@@ -652,6 +797,7 @@ HandleInput ENDP
         ;     cmp al, 'e'
 
         ;     ;Check if select key pressed
-        ;     call HandleInput
-        ;     call HandleInput2
+        ;     call far ptr HandleInput
+        ;     call far ptr HandleInput2
         ;     jmp GameLoop
+

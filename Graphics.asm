@@ -87,6 +87,8 @@ InitBoard PROC FAR
     pusha
     MOV AH, 0
     MOV AL, 13h
+    ; mov ax, 4f02h
+    ; mov bx, 257
     INT 10h
 
     ;Background of Chessboard

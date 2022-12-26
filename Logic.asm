@@ -88,7 +88,7 @@ frame db ?
 timer dw 0 
 
 CoolDownPieces dw 64 dup(0), '$'
-
+AnimateArray db 10 dup('$$$$$$$');00cur pos 00;end pos 0;timer 00;piece symbol
 Winner db 0
 
 Winner_MessageB db " Black Wins ";'Black Wins'
@@ -809,9 +809,9 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             call List_Contains
             cmp al,0 ; selected pos is not a valid attack 
             jne Skip_Check_Empty2
-            mov al, '0'
-            cmp [di], al ; check if position is empty and not valid move or attack
-            je H_I_ClearValidLists_Mid2
+            ; mov al, '0'
+            ; cmp [di], al ; check if position is empty and not valid move or attack
+            ; je H_I_ClearValidLists_Mid2
             jmp Sel2
             ;============================
             H_I_ClearValidLists_Mid2:
@@ -892,14 +892,17 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
 ;==================================
 ;This part is responsible for selecting a new piece and drawing its valid moves & attacks 
         Sel2:
+
             mov ch, px2
             mov cl, py2
             call to_idx
+
             cmp [di], dl
             je Valid_Sel2
             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
             DeselectPlayer2
             call ClearValidLists2        
+
             ret
 
             Valid_Sel2:
@@ -2708,7 +2711,6 @@ ClearValidLists2 proc
     mov ch,px
     mov cl,py
     call RedrawPiece
-
     ret
 ClearValidLists2 ENDP
 
@@ -2764,4 +2766,30 @@ DrawingChecks PROC
     ret
 DrawingChecks ENDP
 
+;takes al = frame time
+; Animate PROC
+;     pusha
+;     ; 0;timer  ;00cur pos 00;end pos 00;piece symbol
+;     lea bx, AnimateArray
+;     A_lp:
+;         add [bx], al
+;         cmp [bx], 10 
+;         jae AnimateUpdate
+;         jmp A_Next
+;         AnimateUpdate:
+;             mov ch,[bx+1]
+;             mov cl,[bx+2]
+;             cmp ch, [bx+3];curx cmp m3 endx
+;             ja 
+;             jmp DontIncrement
+;             cmp 
+;             DontIncrement:
+;             cmp ch, [bx+3]
+
+;         A_Next:
+;         add bx,7
+
+;     popa
+;     ret
+; Animate ENDP
 END ;MAIN
