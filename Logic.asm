@@ -9,6 +9,9 @@ EXTRN DrawPossibleMoves:FAR
 EXTRN DrawPossibleAttacks:FAR
 EXTRN DrawDeadP:FAR
 EXTRN DrawCooldown:FAR
+
+EXTRN name1:byte
+EXTRN name2:byte
 ;EXTRN Moves_bishop:FAR
 Public to_idx
 Public GameScreen
@@ -88,13 +91,14 @@ CoolDownPieces dw 64 dup(0), '$'
 
 Winner db 0
 
-temp db 0
-; there is some kind of error when printing these messages using int 10h/13h
-Winner_MessageB db 'Black Wins'
-Winner_MessageW db 'White Wins'
-; but using these strings is fine idk why
-msg1 db " Black Wins "
-msg2 db " White Wins "
+Winner_MessageB db " Black Wins ";'Black Wins'
+Winner_MessageW db " White Wins ";'White Wins'
+
+BTag db "Black:"
+WTag db "White:"
+
+IncheckMsg db "Check"
+EmptyMsg db "     "
 
 .Code
 
@@ -135,7 +139,7 @@ GameScreen PROC FAR
         mov dx, 300 ; => 9 sec for testing purposes. should be 3
         mov si, 0
         mov cx, 0
-        mov di,ax
+        mov di,ax ; ax contains the frame time
         UpdateCooldown:
             CD_Lp:
                 ;check if piece in this position has a cooldown if not skip it
@@ -164,17 +168,20 @@ GameScreen PROC FAR
                 mov dl, 37
                 div dl
                 cmp al,dh ;if frame indexes equal no need to update frame thus skip 
-                je CD_Lp_Skip             
-
+                je CD_Lp_Skip   
+                push cx          
+                inc ch
+                inc cl ;drawing takes position 1 indexed. the loop is 0 indexed since its an array
                 call RedrawBoardSq
                 
                 call DrawingChecks
 
                 call DrawCooldown
                 call RedrawPiece
+                pop cx
+
                 CD_Lp_Skip:
-                pop dx
-               
+                pop dx               
 
                 jmp NotInCoolDown
 
@@ -185,11 +192,11 @@ GameScreen PROC FAR
                 NotInCoolDown:
                 add bx, 2
                 inc ch
-                cmp ch,9
+                cmp ch,8
                 jne CD_Lp
-                inc cl
-                mov ch,1
-                cmp cl,9
+                inc cl ; if reaches 8 ie end of row
+                mov ch,0
+                cmp cl,8
             jne CD_Lp
 
 
@@ -218,10 +225,10 @@ GameScreen PROC FAR
         ; int 10h
         cmp winner,1
         je White_Wins
-        lea bp, msg1
+        lea bp, Winner_MessageB
         jmp DispMsg
         White_Wins:
-        lea bp, msg2
+        lea bp, Winner_MessageW
         DispMsg:
          mov al, 1
         mov bh, 0
@@ -261,7 +268,7 @@ GameScreen ENDP
 
 ;description
 InitGame PROC Far
-
+        pusha
 ;Initialize array to default values at start of game
         mov ax, @data
         mov es, ax
@@ -317,6 +324,52 @@ InitGame PROC Far
         MOV ch,px2
         MOV cl,py2
         call RedrawPiece
+
+         mov al, 1
+        mov bh, 0
+        mov bl, 1Eh
+        mov cx, 6
+        mov dl, 0
+        mov dh, 0
+        push ds
+        pop es
+        mov bp, offset WTag
+        mov ah, 13h
+        int 10h
+
+        mov dh, 1
+        mov dl, 0
+        mov bh, 0
+        mov ah, 2
+        int 10h
+
+        mov dx, offset name1
+		mov ah, 9
+		int 21h
+
+        mov al, 1
+        mov bh, 0
+        mov bl, 4fh
+        mov cx, 6
+        mov dl, 73
+        mov dh, 0
+        push ds
+        pop es
+        mov bp, offset BTag
+        mov ah, 13h
+        int 10h
+
+        mov dh, 1
+        mov dl, 73
+        mov bh, 0
+        mov ah, 2
+        int 10h
+        
+        mov dx, offset name2
+		mov ah, 9
+		int 21h
+        popa
+        ret
 InitGame ENDP
 
 
@@ -490,11 +543,20 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             kill_Black:
             lea si, B_DeadPiece
             Kill_Piece:
+            
+
 
             mov bl,'4'  ;get last element in array to append at the end
             cmp [di+1],bl
             jne HI_AppendDeadPiece
             mov Winner,1 ;winner 0 => no winner 1 => white wins 2 => Black wins
+
+            pusha
+            mov ah,2
+            mov dl, [di+1]
+            int 21h         
+            popa
+
             HI_AppendDeadPiece:
 
             mov bl,'$'  ;get last element in array to append at the end
@@ -538,6 +600,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             call RedrawPiece
             HI_S1:
             DeselectPlayer1
+            DrawSq2 px2,py2
             call DrawPossibleMoves
             call DrawPossibleAttacks
             call DrawDeadP
@@ -561,12 +624,14 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             ;Make sure the piece to be selected isn't on cooldown
                 ;Calculating the current piece's position in the piece cooldown array
                 mov al, px
+                dec al ; cause the cooldown array is 0 indexed
                 mov ah,0
                 mov bl, 2
                 mul bl
                 mov bh, al
                 
                 mov al, py
+                dec al ; cause the cooldown array is 0 indexed
                 mov ah,0
                 mov bl, 16
                 mul bl
@@ -626,19 +691,21 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
                     ;   1-Check for input
                     ;   2-Move piece
                     ;   3-Getting available moves
+
+                     
     MOV ch,px2
     MOV cl,py2
 
 
-    cmp ah, 39h
-    je Player2
-    cmp ah, 4Dh
+    cmp ah, 39h ;space
+    je Player2 
+    cmp ah, 4Dh ;right arrow
     je RightP2
-    cmp ah, 4Bh
+    cmp ah, 4Bh ;left arrow
     je LeftP2
-    cmp ah, 48h
+    cmp ah, 48h ;up arrow
     je upP2
-    cmp ah, 50h
+    cmp ah, 50h ;down arrow
     je downP2
     
     ret
@@ -672,7 +739,8 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
         ret
 
     Player2:
-    mov dl, 'B' ; B indicates that it is player one that is selecting
+
+    mov dl, 'B' ; B indicates that it is player two that is selecting
     jmp select2
 ;==================================
 ;This part is responsible for drawing selector position update
@@ -728,6 +796,7 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
         cmp al,0 ; selected pos is not a valid move
         je Check_Valid_Attack2
         call Move_Piece2
+    
 
         call ClearValidLists
         mov ch,hx
@@ -760,11 +829,15 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             lea si, B_DeadPiece
             Kill_Piece2:
 
-            mov bl,'4'  ;get last element in array to append at the end
+
+            mov bl,'4'
             cmp [di+1],bl
             jne HI_AppendDeadPiece2
             mov Winner,2 ;winner 0 => no winner 1 => white wins 2 => Black wins
+
+
             HI_AppendDeadPiece2:
+
 
             mov bl,'$'  ;get last element in array to append at the end
             sub si,2
@@ -806,10 +879,14 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov ch,hx
             mov cl,hy
             call RedrawPiece
+    
+
             HI_S3:
             DeselectPlayer2
+            DrawSq px,py
             call DrawPossibleMoves
             call DrawDeadP
+    
             ret
 
 ;==================================
@@ -829,12 +906,14 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             ;Make sure the piece to be selected isn't on cooldown
                 ;Calculating the current piece's position in the piece cooldown array
                 mov al, px2
+                dec al ; cause the cooldown array is 0 indexed
                 mov ah,0
                 mov bl, 2
                 mul bl
                 mov bh, al
                 
                 mov al, py2
+                dec al ; cause the cooldown array is 0 indexed
                 mov ah,0
                 mov bl, 16
                 mul bl
@@ -919,12 +998,14 @@ Move_Piece PROC
     MP_CheckKing:
     ; set the cooldown of the piece to count 3 sec. by changing the value in cooldown array to 1.
     mov al, px
+    dec al ; cause the cooldown array is 0 indexed
     mov ah,0
     mov bl, 2
     mul bl
     mov bh, al
          
     mov al, py
+    dec al ; cause the cooldown array is 0 indexed
     mov ah,0
     mov bl, 16
     mul bl     
@@ -990,12 +1071,14 @@ Move_Piece ENDP
 Move_Piece2 PROC
 
     mov al, px2
+    dec al
     mov ah,0
     mov bl, 2
     mul bl
     mov bh, al
          
     mov al, py2
+    dec al
     mov ah,0
     mov bl, 16
     mul bl     
@@ -1007,6 +1090,7 @@ Move_Piece2 PROC
 
     mov ax,1
     mov [word ptr bx + si], ax
+
 
     mov ch,hx2
     mov cl,hy2
@@ -1023,7 +1107,7 @@ Move_Piece2 PROC
     mov B_King_X,ch
     mov B_King_Y,cl
 
-    
+
     SkipKingUpdate2: 
     mov ch,px2
     mov cl,py2
@@ -1037,6 +1121,7 @@ Move_Piece2 PROC
     mov [bx],cx
     mov ax,3030h
     mov [di],ax
+
 
     call UpdateCheck
 
@@ -2425,57 +2510,78 @@ Is_Check ENDP
 
 ;description
 UpdateCheck PROC
-           mov dl, 13
-        mov ah,2       
-        int 21h
-
-        mov ch, W_King_X
-        mov cl, W_King_Y 
-        call Is_Check
-        cmp al,1
-        jne NotCheck1
-
-        mov ah,2
-        mov dl, 'W'
-        int 21h
-        mov ah,2
-        mov dl, '1'
-        int 21h
-        jmp MovePiece1
-        
-        NotCheck1:
-            mov ah,2
-            mov dl, 'W'
-            int 21h
-            mov ah,2
-            mov dl, '0'
+               mov dl, 13
+            mov ah,2       
             int 21h
 
-        MovePiece1:
-        ;===========Black king is in check??==================
-        mov ch, B_King_X
-        mov cl, B_King_Y 
-        call Is_Check
+            mov ch, W_King_X
+            mov cl, W_King_Y 
+            call Is_Check
+            cmp al,1
+            jne NotCheck1
 
-        cmp al,1
-        jne NotCheck3
+            mov al, 1
+            mov bh, 0
+            mov bl, 1Eh
+            mov cx, 5
+            mov dl, 0
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset IncheckMsg
+            mov ah, 13h
+            int 10h
 
-        mov ah,2
-        mov dl, 'B'
-        int 21h
-        mov ah,2
-        mov dl, '1'
-        int 21h       
+            jmp MovePiece1
+            
+            NotCheck1:
+               mov al, 1
+            mov bh, 0
+            mov bl, 1Eh
+            mov cx, 5
+            mov dl, 0
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset EmptyMsg
+            mov ah, 13h
+            int 10h
 
-        ret
+            MovePiece1:
+            ;===========Black king is in check??==================
+            mov ch, B_King_X
+            mov cl, B_King_Y 
+            call Is_Check
 
-        NotCheck3:
-        mov ah,2
-        mov dl, 'B'
-        int 21h
-        mov ah,2
-        mov dl, '0'
-        int 21h
+            cmp al,1
+            jne NotCheck3
+
+            mov al, 1
+            mov bh, 0
+            mov bl, 4fh
+            mov cx, 5
+            mov dl, 73
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset IncheckMsg
+            mov ah, 13h
+            int 10h     
+
+            ret
+
+            NotCheck3:
+            mov al, 1
+            mov bh, 0
+            mov bl, 4fh
+            mov cx, 5
+            mov dl, 73
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset EmptyMsg
+            mov ah, 13h
+            int 10h  
         
     ret
 UpdateCheck ENDP
@@ -2605,7 +2711,6 @@ ClearValidLists2 proc
 
     ret
 ClearValidLists2 ENDP
-
 
 ;Utility function used in GameScreen proc. to draw the required square when a piece is in cooldown
 DrawingChecks PROC
