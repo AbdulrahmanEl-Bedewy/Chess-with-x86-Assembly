@@ -10,6 +10,7 @@ Public DrawPossibleMoves
 Public DrawPossibleAttacks
 Public DrawDeadP
 Public DrawCooldown
+Public DrawRightPiece
 
 
 EXTRN to_idx:FAR
@@ -307,13 +308,13 @@ ENDM
 
     DrawSolidColor:
     pop dx
-    MOV BL, 20d 
+    MOV BL, 19d 
     mov al,dl
     Square:  ; draw 1 square
         ;mov al,4dh
-        mov cx,20d
+        mov cx,19d
         rep STOSB
-        SUB DI,20d
+        SUB DI,19d
         ADD DI,320D
         DEC BL
     JNZ Square
@@ -334,13 +335,13 @@ ENDM
     ; so the upper part is the new color and lower part is the previous color
     ;pop dx
     
-    MOV ah, 20d
+    MOV ah, 19d
     mov bx, 20
     mov ch, 0
     mov al,dl
     Square2:  ; draw 1/2 square
         ;mov al,4dh
-        mov cx, bx
+        mov cx, bx 
         rep STOSB
         dec bx
         SUB DI,bx
@@ -369,7 +370,7 @@ ENDM
         mov bx, 0
         mov ch, 0
         mov al,dl
-        Square6:  ; draw 1/2 square
+        Square6:  ; draw small triangle
             ;mov al,4dh
             mov cx, bx
             rep STOSB
@@ -385,7 +386,7 @@ ENDM
         ;|        |
         ;|      __|
         ;|_____|__|
-        MOV ah, 10d
+        MOV ah, 9d
     ; mov bx, 1
         mov ch, 0
         mov al,dl
@@ -405,7 +406,8 @@ ENDM
      ret
  DrawSquare ENDP
 
-DrawPiece PROC  ; load cx:dx starting position x:y col:row 1-8:1-8
+DrawPiece PROC FAR  ; load cx:dx starting position x:y col:row 1-8:1-8
+                ; lea bx, data array
     mov AH,0
     mov al,cl
 
@@ -420,11 +422,11 @@ DrawPiece PROC  ; load cx:dx starting position x:y col:row 1-8:1-8
     mov Cx, Ax
     add Cx , 60
 
-    MOV AH,0ch    
+    MOV AH, 0ch    
     mov Si, Cx
     add Si, 20
     mov Di, dx
-    add Di,20
+    add Di, 20
     ; Drawing loop
     drawLoop:
         MOV AL,[BX]
@@ -452,7 +454,7 @@ RedrawBoardSq PROC FAR ; load ch:cl starting position x:y col:row 1-8:1-8
     pusha
 
     Lea Bx,  BoardData
-    
+    ; get offset in the Board data array
     mov AH,0
     mov al,cl
     push cx
@@ -472,6 +474,8 @@ RedrawBoardSq PROC FAR ; load ch:cl starting position x:y col:row 1-8:1-8
     add bx,ax
 ;    add Cx , 80
 
+; get x and y coordinates in px of the square that is to be drawn
+
     pop cx
     mov AH,0
     mov al,cl
@@ -488,13 +492,12 @@ RedrawBoardSq PROC FAR ; load ch:cl starting position x:y col:row 1-8:1-8
     ;add bx,ax
     add Cx , 60
 
+
     MOV AH,0ch    
     mov Si, Cx
     add Si, 20
     mov Di, dx
     add Di,20
-
-    
     ; Drawing loop
     drawLoop4:
         MOV AL,[BX]
@@ -505,7 +508,7 @@ RedrawBoardSq PROC FAR ; load ch:cl starting position x:y col:row 1-8:1-8
     JNE drawLoop4             
         ;MOV CX , Si
         Sub CX, 20
-        Sub bX, 20
+        Sub BX, 20
         add bx, 198
         INC DX
         CMP DX , Di
@@ -541,7 +544,7 @@ RedrawPiece PROC FAR
     je nopiece
     inc cl
     inc ch
-    call DrawRightPiece
+    call far ptr DrawRightPiece
 
     ;no piece
     nopiece: 
@@ -586,7 +589,6 @@ OpenFile PROC ;load offset of file name in Dx
 
     MOV AH, 3Dh
     MOV AL, 0 ; read only
-    ;LEA DX, chickenFilename
     INT 21h
     
     ; you should check carry flag to make sure it worked correctly
@@ -604,8 +606,6 @@ ReadData PROC ; load file size in cx
 
     MOV AH,3Fh
     MOV BX, [Filehandle]
-   ; MOV CX,chickenWidth*chickenHeight ; number of bytes to read
-   ; LEA DX, chickenData
     INT 21h
     RET
 ReadData ENDP 
@@ -620,7 +620,7 @@ DrawPossibleMoves PROC FAR
         je DPM_end
         mov bl,[di]
         mov al,[di+1]
-        mov dl, 66h
+        mov dl, 36h ;66h
         call DrawSquare
         add di, 2
         jmp DPM_Draw
@@ -706,7 +706,7 @@ DrawDeadP PROC FAR
         je n1
         cmp [di],al
         je drawW
-        call DrawRightPiece
+        call far ptr DrawRightPiece
         inc cl
         add di,2
         jmp lp4
@@ -717,7 +717,7 @@ DrawDeadP PROC FAR
         je drawW
         cmp [di],al
         je drawW
-        call DrawRightPiece
+        call far ptr DrawRightPiece
         inc cl
         add di,2
         jmp lp5
@@ -732,7 +732,7 @@ DrawDeadP PROC FAR
         cmp [di],al
         je done
         inc cl
-        call DrawRightPiece
+        call far ptr DrawRightPiece
         add di,2
         jmp lp6
     n2:dec ch
@@ -742,7 +742,7 @@ DrawDeadP PROC FAR
         je done
         cmp [di],al
         je done
-        call DrawRightPiece
+        call far ptr DrawRightPiece
         inc cl
         add di,2
         jmp lp7
@@ -752,8 +752,15 @@ DrawDeadP PROC FAR
 DrawDeadP ENDP
 
 ;takes el piece symbols in di & position in CX
-DrawRightPiece PROC
+DrawRightPiece PROC far
     pusha
+
+    ; pusha
+    ; mov ah,2
+    ; mov dl, [di]
+    ; int 21h         
+    ; popa
+
     mov bl,'B'
     cmp [di],bl
     ja White
@@ -827,6 +834,9 @@ DrawRightPiece PROC
     onepiece:
     call DrawPiece
     nopiece1:
+
+    ; mov ah,1
+    ; int 21h
     popa 
     ret
 DrawRightPiece ENDP

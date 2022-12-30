@@ -11,8 +11,9 @@ Public name2
 
 .data       
 
-    name1 db 16 dup("$")
-    name2 db 16 dup("$")
+    name1 db 15, ?, 15 dup("$")
+    name2 db 15, ?, 15 dup("$")
+    ;name2 db 16 dup("$")
     Enter_Name db 'Please Enter Your Name','$'
     Press_Enter db 'Press any button To contiue','$';27
     Greeting db 'Hello $'
@@ -163,9 +164,20 @@ GetNameScreen PROC
     mov ah, 9
     mov dx, offset Greeting
     int 21h
+
     mov ah, 9
     mov dx, si
     int 21h
+    ; mov si,bx
+    ; mov cl,[si+1] 
+    ; add si,2
+    ; GN_lp:
+    ;     mov ah,2
+    ;     mov dl, [si]
+    ;     int 21h 
+    ;     inc si
+    ;     dec cl
+    ;     jnz GN_lp
 
     MOV AH,2
     MOV BH,00

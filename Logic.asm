@@ -9,6 +9,7 @@ EXTRN DrawPossibleMoves:FAR
 EXTRN DrawPossibleAttacks:FAR
 EXTRN DrawDeadP:FAR
 EXTRN DrawCooldown:FAR
+EXTRN DrawRightPiece:FAR
 
 EXTRN name1:byte
 EXTRN name2:byte
@@ -28,7 +29,7 @@ Public py
 include Macro.inc
 .286
 .Model small
-.Stack 200h
+.Stack 400h
 .Data
 
 Beginning_Board         db "B0","B1","B2","B3","B4","B2","B1","B0"
@@ -88,7 +89,8 @@ frame db ?
 timer dw 0 
 
 CoolDownPieces dw 64 dup(0), '$'
-AnimateArray db 10 dup('$$$$$$$');00cur pos 00;end pos 0;timer 00;piece symbol
+;AnimateArray db 10 dup('$$$$$$$$');00cur pos 00;end pos 0;timer 00;piece symbol
+AnimateArray db 10 dup('$$$$$$$');00cur pos 00;end pos 0;timer 00;el symbool
 Winner db 0
 
 Winner_MessageB db " Black Wins ";'Black Wins'
@@ -109,14 +111,7 @@ GameScreen PROC FAR
     
     call InitBoard
     call far ptr InitGame
-    ; DrawSq px, py
-    ; MOV ch,px
-    ; MOV cl,py
-    ; call RedrawPiece
-    ; DrawSq2 px2, py2
-    ; MOV ch,px2
-    ; MOV cl,py2
-    ; call RedrawPiece
+
 
     mov ah, 2Ch    
     int 21h
@@ -135,6 +130,10 @@ GameScreen PROC FAR
     ;MAIN GAME LOOP
     GameLP:
         call far ptr GetFrameTime
+        pusha
+        call Animate
+        popa
+        
         lea bx, CoolDownPieces
         mov dx, 300 ; => 9 sec for testing purposes. should be 3
         mov si, 0
@@ -289,6 +288,14 @@ InitGame PROC Far
         lea si, ValidAttacks2
         call ClearList
 
+        lea si, AnimateArray       
+        mov cx,10*7
+        mov ah,'$'
+        CL_Animations:
+            mov [si],ah
+            inc si
+            LOOP CL_Animations
+
         lea si, CoolDownPieces
         mov cx, 64
         mov ax, 0
@@ -368,6 +375,8 @@ InitGame PROC Far
         mov dx, offset name2
 		mov ah, 9
 		int 21h
+
+        call UpdateCheck
         popa
         ret
 InitGame ENDP
@@ -512,11 +521,6 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         je Check_Valid_Attack
         call Move_Piece
 
-        call ClearValidLists2
-        mov ch,hx2
-        mov cl,hy2
-        call GetValidMoves
-
         jmp H_I_ClearValidLists
         
         Check_Valid_Attack:
@@ -546,28 +550,23 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             
 
 
-            mov bl,'4'  ;get last element in array to append at the end
+            mov bl,'4'  ; king number ex B4 is black king
             cmp [di+1],bl
             jne HI_AppendDeadPiece
             mov Winner,1 ;winner 0 => no winner 1 => white wins 2 => Black wins
 
-            pusha
-            mov ah,2
-            mov dl, [di+1]
-            int 21h         
-            popa
-
             HI_AppendDeadPiece:
+                mov bl,'$'  ;get last element in array to append at the end
+                sub si,2
+                GetEnd:add si,2
+                    cmp [si],bl
+                    jne GetEnd
+                mov bh,[di]
+                mov bl,[di+1]
+                mov [si],bh
+                mov [si+1],bl
 
-            mov bl,'$'  ;get last element in array to append at the end
-            sub si,2
-            GetEnd:add si,2
-                cmp [si],bl
-                jne GetEnd
-            mov bh,[di]
-            mov bl,[di+1]
-            mov [si],bh
-            mov [si+1],bl
+
             call Move_Piece 
             
             cmp hx2,0
@@ -581,11 +580,11 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             jne G3
             DeselectPlayer2
             G3:
-            call ClearValidLists2
+            ; call ClearValidLists2
 
-            mov ch,hx2
-            mov cl,hy2
-            call GetValidMoves
+            ; mov ch,hx2
+            ; mov cl,hy2
+            ; call GetValidMoves
             ;call DrawPossibleMoves
 ;==================================
 ;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
@@ -594,16 +593,18 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
 
             cmp hx2,0
             je HI_S1
-            DrawSq2 hx2,hy2
+            DrawSq2 hx2,hy2 ;ba redraw el background of el selected piece bta3t el team el tany 
+                            ;34an lw kan selected w kan valid attack lama ams7 el attack el selector maytms74
             mov ch,hx2
             mov cl,hy2
             call RedrawPiece
-            HI_S1:
+            HI_S1:         
+
             DeselectPlayer1
             DrawSq2 px2,py2
-            call DrawPossibleMoves
-            call DrawPossibleAttacks
-            call DrawDeadP
+            ; call DrawPossibleMoves
+            ; call DrawPossibleAttacks
+            ; call DrawDeadP
             ret
 
 ;==================================
@@ -618,6 +619,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             DeselectPlayer1
 
             call ClearValidLists
+            call DrawPossibleAttacks       
 
             ret
             Valid_Sel:
@@ -682,7 +684,6 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             HI_S2:
             ret    
 HandleInput ENDP
-
 
 ;black
 HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
@@ -798,10 +799,11 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call Move_Piece2
     
 
-        call ClearValidLists
-        mov ch,hx
-        mov cl,hy
-        call GetValidMoves
+        ; call ClearValidLists
+        ; mov ch,hx
+        ; mov cl,hy
+        ; call GetValidMoves
+
         jmp H_I_ClearValidLists2
         
         Check_Valid_Attack2:
@@ -861,11 +863,11 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             jne G4
             DeselectPlayer1
             G4:
-            call ClearValidLists
+            ; call ClearValidLists
 
-            mov ch,hx
-            mov cl,hy
-            call GetValidMoves
+            ; mov ch,hx
+            ; mov cl,hy
+            ; call GetValidMoves
             ;call DrawPossibleMoves
                        
 ;==================================
@@ -875,7 +877,7 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             
             cmp hx,0
             je HI_S3
-            DrawSq hx,hy
+            DrawSq hx,hy ;lw player el tany kan 3aml select 7aga haroo7 arsm el selector tany
             mov ch,hx
             mov cl,hy
             call RedrawPiece
@@ -884,8 +886,8 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             HI_S3:
             DeselectPlayer2
             DrawSq px,py
-            call DrawPossibleMoves
-            call DrawDeadP
+            ; call DrawPossibleMoves
+            ; call DrawDeadP
     
             ret
 
@@ -901,7 +903,8 @@ HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
             je Valid_Sel2
             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
             DeselectPlayer2
-            call ClearValidLists2        
+            call ClearValidLists2 
+            call DrawPossibleAttacks
 
             ret
 
@@ -997,29 +1000,29 @@ List_Contains ENDP
 ; from hx & hy to px & py
 Move_Piece PROC
     
+    ; mov al, px
+    ; dec al
+    ; mov ah,0
+    ; mov bl, 2
+    ; mul bl
+    ; mov bh, al
+         
+    ; mov al, py
+    ; dec al
+    ; mov ah,0
+    ; mov bl, 16
+    ; mul bl     
+
+    ; add al, bh
+    ; mov si, ax
+    ; mov ax, 0
+    ; lea bx, CoolDownPieces
+
+    ; mov ax,1
+    ; mov [word ptr bx + si], ax
 
     MP_CheckKing:
-    ; set the cooldown of the piece to count 3 sec. by changing the value in cooldown array to 1.
-    mov al, px
-    dec al ; cause the cooldown array is 0 indexed
-    mov ah,0
-    mov bl, 2
-    mul bl
-    mov bh, al
-         
-    mov al, py
-    dec al ; cause the cooldown array is 0 indexed
-    mov ah,0
-    mov bl, 16
-    mul bl     
-
-    add al, bh
-    mov si, ax
-    mov ax, 0
-    lea bx, CoolDownPieces
-
-    mov ax,1
-    mov [word ptr bx + si], ax
+    
 
 
     ;check if the piece is a king then update the king's position variable
@@ -1060,39 +1063,66 @@ Move_Piece PROC
     mov cl,hy
     call to_idx
     ;moving the piece's code to the destination in chessboard array and moving '00' to the original position
-    mov cx,[di]
-    mov [bx],cx
+    mov dx,[di]
+    ;mov dx,cx
     mov ax,3030h
+    mov [bx],ax
     mov [di],ax
-    ;update the checkmates as the movement may cause any changes
-    call UpdateCheck
-    ;if there was a selected piece by the opponent update its valid-moves&attacks as the movement may cause any changes
-    
+
+    ;mov di,bx
+    lea bx, AnimateArray
+    mov al,'$'
+    MP_LP:
+        cmp [bx], al
+        je MP_Append
+        add bx,4
+        jmp MP_LP    
+    MP_Append:
+    ; ;00cur pos 00;end pos 0;timer 00;piece symbol    
+    ;mov ah, '$'
+    ; mov cl,[di]
+    ; mov ch,[di+1]
+    mov [bx+5], dl
+    mov [bx+6], dh
+
+    mov ch,hx
+    mov cl,hy
+    mov [bx], ch
+    mov [bx+1], cl
+
+    mov ch,px
+    mov cl,py
+    mov [bx+2], ch
+    mov [bx+3], cl
+    mov ah,0
+    mov [bx+4], ah
+
+ 
     ret
 Move_Piece ENDP
 
 Move_Piece2 PROC
 
-    mov al, px2
-    dec al
-    mov ah,0
-    mov bl, 2
-    mul bl
-    mov bh, al
+    ; mov al, px2
+    ; dec al
+    ; mov ah,0
+    ; mov bl, 2
+    ; mul bl
+    ; mov bh, al
          
-    mov al, py2
-    dec al
-    mov ah,0
-    mov bl, 16
-    mul bl     
+    ; mov al, py2
+    ; dec al
+    ; mov ah,0
+    ; mov bl, 16
+    ; mul bl     
 
-    add al, bh
-    mov si, ax
-    mov ax, 0
-    lea bx, CoolDownPieces
+    ; add al, bh
+    ; mov si, ax
+    ; mov ax, 0
+    ; lea bx, CoolDownPieces
 
-    mov ax,1
-    mov [word ptr bx + si], ax
+    ; mov ax,1
+    ; mov [word ptr bx + si], ax
 
 
     mov ch,hx2
@@ -1120,13 +1150,42 @@ Move_Piece2 PROC
     mov ch,hx2
     mov cl,hy2
     call to_idx
-    mov cx,[di]
-    mov [bx],cx
+
+    mov dx,[di]
+    ;mov dx,cx
     mov ax,3030h
+    mov [bx],ax
     mov [di],ax
 
 
-    call UpdateCheck
+
+    ;mov di,bx
+    lea bx, AnimateArray
+    mov al,'$'
+    MP_LP2:
+        cmp [bx], al
+        je MP_Append2
+        add bx,4
+        jmp MP_LP2    
+    MP_Append2:
+    ; ;00cur pos 00;end pos 0;timer 00;piece symbol    
+    ;mov ah, '$'
+    ; mov cl,[di]
+    ; mov ch,[di+1]
+    mov [bx+5], dl
+    mov [bx+6], dh
+
+    mov ch,hx2
+    mov cl,hy2
+    mov [bx], ch
+    mov [bx+1], cl
+
+    mov ch,px2
+    mov cl,py2
+    mov [bx+2], ch
+    mov [bx+3], cl
+    mov ah,0
+    mov [bx+4], ah
 
     
     ret
@@ -1151,7 +1210,6 @@ ClearList PROC
     Cleared:
     ret
 ClearList ENDP
-
 
 ;Gets start idx of Position (CX) and puts it in DI
 to_idx PROC
@@ -1199,7 +1257,6 @@ pusha
 popa
 ret
 to_px ENDP
-
 
 ;populates the valid moves array with positions x:y (row:col not px) the selected piece can move to
 ; need position in (CX) x:y => ch:cl
@@ -2003,6 +2060,9 @@ Is_Check PROC
             mov al, '0'
             cmp [bx+1], al
             je Incheck_Mid1
+            mov al, '4'
+            cmp [bx+1], al
+            je Incheck_Mid1
             
           
         IC_Next1:
@@ -2031,6 +2091,9 @@ Is_Check PROC
             cmp [bx+1], al
             je Incheck_Mid1 
             mov al, '0'
+            cmp [bx+1], al
+            je Incheck_Mid1
+            mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid1
 
@@ -2068,6 +2131,9 @@ Is_Check PROC
             mov al, '0'
             cmp [bx+1], al
             je Incheck_Mid1
+            mov al, '4'
+            cmp [bx+1], al
+            je Incheck_Mid1
 
         IC_Next3:
         ;  mov ah,2
@@ -2095,6 +2161,9 @@ Is_Check PROC
             cmp [bx+1], al
             je Incheck_Mid1 
             mov al, '0'
+            cmp [bx+1], al
+            je Incheck_Mid1
+            mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid1
 
@@ -2133,6 +2202,9 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+            mov al, '4'
+            cmp [bx+1], al
+            je Incheck_Mid2
 
         I_C_Next1:
         ;initializations
@@ -2162,6 +2234,9 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+            mov al, '4'
+            cmp [bx+1], al
+            je Incheck_Mid2
 
 
         ;==================
@@ -2197,6 +2272,9 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+            mov al, '4'
+            cmp [bx+1], al
+            je Incheck_Mid2
 
         I_C_Next3:
         ;initializations
@@ -2226,6 +2304,9 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+            mov al, '4'
+            cmp [bx+1], al
+            je Incheck_Mid2
 
 
     Knight:
@@ -2468,7 +2549,7 @@ Is_Check PROC
 
         cmp cl,7
         jae NoCheck
-
+        add di, 16
 
         B_Check_Attacks1:
         mov al,'W'
@@ -2513,78 +2594,82 @@ Is_Check ENDP
 
 ;description
 UpdateCheck PROC
-               mov dl, 13
-            mov ah,2       
-            int 21h
+    ; pusha
+    ;            mov dl, 13
+    ;         mov ah,2       
+    ;         int 21h
 
-            mov ch, W_King_X
-            mov cl, W_King_Y 
-            call Is_Check
-            cmp al,1
-            jne NotCheck1
+    ;         mov ch, W_King_X
+    ;         mov cl, W_King_Y 
+    ;         call Is_Check
+    ;         cmp al,1
+    ;         jne NotCheck1
 
-            mov al, 1
-            mov bh, 0
-            mov bl, 1Eh
-            mov cx, 5
-            mov dl, 0
-            mov dh, 23
-            push ds
-            pop es
-            mov bp, offset IncheckMsg
-            mov ah, 13h
-            int 10h
+    ;         mov al, 1
+    ;         mov bh, 0
+    ;         mov bl, 1Eh
+    ;         mov cx, 5
+    ;         mov dl, 0
+    ;         mov dh, 23
+    ;         push ds
+    ;         pop es
+    ;         mov bp, offset IncheckMsg
+    ;         mov ah, 13h
+    ;         int 10h
 
-            jmp MovePiece1
+    ;         jmp MovePiece1
             
-            NotCheck1:
-               mov al, 1
-            mov bh, 0
-            mov bl, 1Eh
-            mov cx, 5
-            mov dl, 0
-            mov dh, 23
-            push ds
-            pop es
-            mov bp, offset EmptyMsg
-            mov ah, 13h
-            int 10h
+    ;         NotCheck1:
+    ;            mov al, 1
+    ;         mov bh, 0
+    ;         mov bl, 1Eh
+    ;         mov cx, 5
+    ;         mov dl, 0
+    ;         mov dh, 23
+    ;         push ds
+    ;         pop es
+    ;         mov bp, offset EmptyMsg
+    ;         mov ah, 13h
+    ;         int 10h
 
-            MovePiece1:
-            ;===========Black king is in check??==================
-            mov ch, B_King_X
-            mov cl, B_King_Y 
-            call Is_Check
+    ;         MovePiece1:
+    ;         ;===========Black king is in check??==================
+    ;         mov ch, B_King_X
+    ;         mov cl, B_King_Y 
+    ;         call Is_Check
 
-            cmp al,1
-            jne NotCheck3
+    ;         cmp al,1
+    ;         jne NotCheck3
 
-            mov al, 1
-            mov bh, 0
-            mov bl, 4fh
-            mov cx, 5
-            mov dl, 73
-            mov dh, 23
-            push ds
-            pop es
-            mov bp, offset IncheckMsg
-            mov ah, 13h
-            int 10h     
+    ;         mov al, 1
+    ;         mov bh, 0
+    ;         mov bl, 4fh
+    ;         mov cx, 5
+    ;         mov dl, 73
+    ;         mov dh, 23
+    ;         push ds
+    ;         pop es
+    ;         mov bp, offset IncheckMsg
+    ;         mov ah, 13h
+    ;         int 10h
+                 
+    ;         POPA
+    ;         ret
 
-            ret
+    ;         NotCheck3:
+    ;         mov al, 1
+    ;         mov bh, 0
+    ;         mov bl, 4fh
+    ;         mov cx, 5
+    ;         mov dl, 73
+    ;         mov dh, 23
+    ;         push ds
+    ;         pop es
+    ;         mov bp, offset EmptyMsg
+    ;         mov ah, 13h
+    ;         int 10h  
 
-            NotCheck3:
-            mov al, 1
-            mov bh, 0
-            mov bl, 4fh
-            mov cx, 5
-            mov dl, 73
-            mov dh, 23
-            push ds
-            pop es
-            mov bp, offset EmptyMsg
-            mov ah, 13h
-            int 10h  
+    ; popa
         
     ret
 UpdateCheck ENDP
@@ -2766,30 +2851,197 @@ DrawingChecks PROC
     ret
 DrawingChecks ENDP
 
+PrintNumber proc   
+    pusha
+       mov bl,10
+       ; mov al,ans
+        mov ah,0
+        div bl
+        push ax
+        mov ah,0
+        div bl  
+        
+        mov dl, ah
+        mov ah,2       
+        add dl,48
+        int 21h      
+        
+        
+        pop ax
+        mov dl, ah
+        mov ah,2       
+        add dl,48
+        int 21h  
+ 
+   popa  
+   ret
+PrintNumber ENDP
+
 ;takes al = frame time
-; Animate PROC
-;     pusha
-;     ; 0;timer  ;00cur pos 00;end pos 00;piece symbol
-;     lea bx, AnimateArray
-;     A_lp:
-;         add [bx], al
-;         cmp [bx], 10 
-;         jae AnimateUpdate
-;         jmp A_Next
-;         AnimateUpdate:
-;             mov ch,[bx+1]
-;             mov cl,[bx+2]
-;             cmp ch, [bx+3];curx cmp m3 endx
-;             ja 
-;             jmp DontIncrement
-;             cmp 
-;             DontIncrement:
-;             cmp ch, [bx+3]
+Animate PROC
+    pusha
+    ; ;00cur pos 00;end pos ;0timer ;00 symbol
+    lea bx, AnimateArray
+    mov si,10
+    A_lp:
+        mov ah, '$'
+        cmp [bx], ah
+        je A_B
+        ;jmp UPDATERZ
+        add [bx+4], al
+        mov ah, 5 ; the time a moving piece will stay aat each square 
+        cmp [bx+4], ah
+        jae UPDATERZ
+        A_B:
+        add bx,7
+        dec si
+        jnz A_lp
+        jmp a_end
+        UPDATERZ:
+    ;      pusha
+    ; mov ah,2
+    ; mov dl, '1'
+    ; int 21h         
+    ; popa
 
-;         A_Next:
-;         add bx,7
+        mov ch, [bx] ; ba7ot el current position abl ma a3mlo increment for later comparisions
+        mov cl, [bx+1]
+        
+        mov ah,1
+        cmp ch,[bx+2]
+        jb INCX
+        je Checks_El_Y
 
-;     popa
-;     ret
-; Animate ENDP
+        sub [bx],ah
+        jmp Checks_El_Y
+        INCX:
+        add [bx],ah 
+
+        Checks_El_Y:
+        cmp cl,[bx+3]
+        jb INCY
+        je Drawingkda
+
+        sub [bx+1],ah
+        jmp Drawingkda
+        INCY:
+        add [bx+1],ah 
+
+
+        Drawingkda:
+        call RedrawBoardSq
+        call RedrawPiece
+        mov ch, [bx]
+        mov cl, [bx+1]
+        mov di, bx
+        add di,5
+        call DrawRightPiece
+
+        cmp ch,[bx+2]
+        jne LKMID
+        
+        jmp checky
+        LKMID:
+        jmp LK
+
+        checky:
+        cmp cl, [bx+3]
+        jne LKMID
+        
+        call to_idx
+        mov dl,[bx+5]
+        mov dh,[bx+6]
+        mov [di],dl
+        mov [di+1],dh
+
+    ;      pusha
+    ; mov ah,2
+    ; mov dl, [bx]
+    ; add dl,48
+    ; int 21h         
+    ; mov ah,2
+    ; mov dl, [bx+1]
+    ; add dl,48
+    ; int 21h         
+    ; popa
+
+pusha 
+    ;=========================
+    ;setting the cooldown
+    mov al, [bx+2]
+    dec al
+    mov ah,0
+    mov cl, 2
+    mul cl
+    mov ch, al
+
+    mov al, [bx+3]
+    dec al
+    mov ah,0
+    mov cl, 16
+    mul cl     
+
+    add al, ch
+    mov si, ax
+    mov ax, 0
+    lea bx, CoolDownPieces
+    mov ax,1
+    mov [word ptr bx + si], ax
+
+    ;==========================
+    ;refreshing the valid moves of the enemy 
+    call ClearValidLists2
+    mov ch,hx2
+    mov cl,hy2
+    call GetValidMoves
+
+    call ClearValidLists
+    mov ch,hx
+    mov cl,hy
+    call GetValidMoves
+
+    call DrawPossibleMoves
+    call DrawPossibleAttacks
+    call DrawDeadP
+    
+
+popa
+;update the checkmates as the movement may cause any changes
+    
+    ;if there was a selected piece by the opponent update its valid-moves&attacks as the movement may cause any changes
+
+        call UpdateCheck
+    
+        mov ah,'$'
+        mov [bx],ah
+        mov [bx+1],ah
+        mov [bx+2],ah
+        mov [bx+3],ah
+        mov [bx+4],ah
+        mov [bx+5],ah
+        mov [bx+6],ah
+
+        add bx,7
+        dec si
+        jnz A_LPMid
+        jmp a_end
+        
+        LK:
+        mov ah,0
+        mov [bx+4],ah
+        add bx,7
+        dec si
+        jnz A_LPMid
+
+        jmp A_End
+        A_LPMid: jmp A_lp
+
+    
+
+    A_End:
+    popa
+    ret
+Animate ENDP
+
+
 END ;MAIN
