@@ -15,7 +15,11 @@ EXTRN name1:byte
 EXTRN name2:byte
 ;EXTRN Moves_bishop:FAR
 Public to_idx
-Public GameScreen
+; Public GameScreenLocal
+Public GameScreenMulti  
+Public SendByte
+Public RecieveByte
+Public PrintNumber
 
 Public chessBoard
 Public ValidMoves
@@ -26,6 +30,10 @@ Public B_DeadPiece
 Public W_DeadPiece
 Public px
 Public py
+Public Player
+Public Mode
+Public RMsg
+Public SMsg
 include Macro.inc
 .286
 .Model small
@@ -93,8 +101,10 @@ CoolDownPieces dw 64 dup(0), '$'
 AnimateArray db 10 dup('$$$$$$$');00cur pos 00;end pos 0;timer 00;el symbool
 Winner db 0
 
-Winner_MessageB db " Black Wins ";'Black Wins'
-Winner_MessageW db " White Wins ";'White Wins'
+; Winner_MessageB db " Black Wins ";'Black Wins'
+; Winner_MessageW db " White Wins ";'White Wins'
+Winner_MessageW db " You Win ";'Black Wins' 9
+Winner_MessageB db " You Lose ";'White Wins' 10
 
 BTag db "Black:"
 WTag db "White:"
@@ -102,9 +112,178 @@ WTag db "White:"
 IncheckMsg db "Check"
 EmptyMsg db "     "
 
+RMsg db 4 dup(9)
+SMsg db 4 dup(9)
+
+Player db 'W' ; dh el by7aded whether im player1 or player 2
+Mode db 0 ; dh el by7aded whether im player1 or player 2
+
 .Code
 
-GameScreen PROC FAR
+;The main game loop for local mode
+; GameScreenLocal PROC FAR
+;     MOV AX , @DATA
+;     MOV DS , AX
+    
+    
+;     call InitBoard
+;     call far ptr InitGame
+
+
+;     mov ah, 2Ch    
+;     int 21h
+;     mov al,dh ; move el seconds
+;     mov ah,0
+
+;     mov bl, 100
+;     mul bl
+;     mov bl, cl
+;     mov bh, 0
+;     add ax , bx
+;     mov bx, ax
+;     mov Prevtime, bx
+;     mov prevs, dh
+;     ;======================================================================================
+;     ;MAIN GAME LOOP
+;     GameLP:
+;         call far ptr GetFrameTime
+;         pusha
+;         call Animate
+;         popa
+        
+;         lea bx, CoolDownPieces
+;         mov dx, 300 ; => 9 sec for testing purposes. should be 3
+;         mov si, 0
+;         mov cx, 0
+;         mov di,ax ; ax contains the frame time
+;         UpdateCooldown:
+;             CD_Lp:
+;                 ;check if piece in this position has a cooldown if not skip it
+;                 cmp [word ptr bx], si ;0
+;                 je NotInCoolDown
+
+;                 ;if piece is on cooldown check if the cooldown is done
+;                 cmp [word ptr bx], dx ;300 
+;                 jae DoneCooldown
+                
+;                 ;cooldown isn't done
+;                 ;check if 37/100 sec has passed since last time, if yes then update the drawing.
+;                 ; there are 8 frames for the cooldown and the cooldown duration is 3 sec 
+;                 ; so each frame should be displayed for roughly 37/100 sec
+;                 push dx
+;                 mov ax, [word ptr bx] ; move the time that passed since start of the cooldown timer until the last loop  
+;                 mov dl, 37
+;                 div dl
+;                 mov dh,al 
+;                 ;dh now has the previous frame index
+
+;                 ;check if enough time has passed and the frame needs to be updated
+;                 ;calculate new frame index
+;                 add [word ptr bx], di
+;                 mov ax, [word ptr bx]
+;                 mov dl, 37
+;                 div dl
+;                 cmp al,dh ;if frame indexes equal no need to update frame thus skip 
+;                 je CD_Lp_Skip   
+;                 push cx          
+;                 inc ch
+;                 inc cl ;drawing takes position 1 indexed. the loop is 0 indexed since its an array
+;                 call RedrawBoardSq
+                
+;                 call DrawingChecks
+
+;                 call DrawCooldown
+;                 call RedrawPiece
+;                 pop cx
+
+;                 CD_Lp_Skip:
+;                 pop dx               
+
+;                 jmp NotInCoolDown
+
+;                 DoneCooldown:
+;                 mov [word ptr bx], si ;0
+;                 call RedrawPiece
+
+;                 NotInCoolDown:
+;                 add bx, 2
+;                 inc ch
+;                 cmp ch,8
+;                 jne CD_Lp
+;                 inc cl ; if reaches 8 ie end of row
+;                 mov ch,0
+;                 cmp cl,8
+;             jne CD_Lp
+
+
+;         mov ch,px
+;         mov cl,py
+;         mov ah,1
+;         int 16h   
+;         jz GameLP1
+
+;         mov ah,0
+;         int 16h   
+        
+;         cmp ah, 01
+;         je ending
+
+
+;         ;Check if select key pressed
+;         call far ptr HandleInput
+;         call far ptr HandleInput2
+
+;         cmp winner,0
+;         je GameLP1
+;         ; Press any key to exit
+;         ; mov ah,2
+;         ; mov dx,1407h
+;         ; int 10h
+;         cmp winner,1
+;         je White_Wins
+;         lea bp, Winner_MessageB
+;         jmp DispMsg
+;         White_Wins:
+;         lea bp, Winner_MessageW
+;         DispMsg:
+;          mov al, 1
+;         mov bh, 0
+;         mov bl, 4
+;         mov cx, 12  
+;         mov dl, 14
+;         mov dh, 12
+;         push ds
+;         pop es
+;         ;mov bp, offset msg
+;         mov ah, 13h
+;         int 10h
+            
+;         MOV AH , 0
+;         INT 16h
+;         ret
+;         GameLP1:
+;         jmp GameLP
+        
+;     ending:
+    
+;     ; ; Press any key to exit
+;     ; MOV AH , 0
+;     ; INT 16h
+    
+    
+;     ; ;Change to Text MODE
+;     ; MOV AH,0          
+;     ; MOV AL,03h
+;     ; INT 10h 
+
+;     ; ; return control to operating system
+;     ; MOV AH , 4ch
+;     ; INT 21H
+;     ret
+; GameScreenLocal ENDP
+
+;The main game loop for multiplayer mode
+GameScreenMulti PROC
     MOV AX , @DATA
     MOV DS , AX
     
@@ -128,26 +307,26 @@ GameScreen PROC FAR
     mov prevs, dh
     ;======================================================================================
     ;MAIN GAME LOOP
-    GameLP:
+    GameLPMulti:
         call far ptr GetFrameTime
-        pusha
+        call RecieveMsg
         call Animate
-        popa
+        
         
         lea bx, CoolDownPieces
         mov dx, 300 ; => 9 sec for testing purposes. should be 3
         mov si, 0
         mov cx, 0
         mov di,ax ; ax contains the frame time
-        UpdateCooldown:
-            CD_Lp:
+        UpdateCooldownMulti:
+            CD_LpMulti:
                 ;check if piece in this position has a cooldown if not skip it
                 cmp [word ptr bx], si ;0
-                je NotInCoolDown
+                je NotInCoolDownMulti
 
                 ;if piece is on cooldown check if the cooldown is done
                 cmp [word ptr bx], dx ;300 
-                jae DoneCooldown
+                jae DoneCooldownMulti
                 
                 ;cooldown isn't done
                 ;check if 37/100 sec has passed since last time, if yes then update the drawing.
@@ -167,7 +346,7 @@ GameScreen PROC FAR
                 mov dl, 37
                 div dl
                 cmp al,dh ;if frame indexes equal no need to update frame thus skip 
-                je CD_Lp_Skip   
+                je CD_Lp_SkipMulti   
                 push cx          
                 inc ch
                 inc cl ;drawing takes position 1 indexed. the loop is 0 indexed since its an array
@@ -179,60 +358,61 @@ GameScreen PROC FAR
                 call RedrawPiece
                 pop cx
 
-                CD_Lp_Skip:
+                CD_Lp_SkipMulti:
                 pop dx               
 
-                jmp NotInCoolDown
+                jmp NotInCoolDownMulti
 
-                DoneCooldown:
+                DoneCooldownMulti:
                 mov [word ptr bx], si ;0
                 call RedrawPiece
 
-                NotInCoolDown:
+                NotInCoolDownMulti:
                 add bx, 2
                 inc ch
                 cmp ch,8
-                jne CD_Lp
+                jne CD_LpMulti
                 inc cl ; if reaches 8 ie end of row
                 mov ch,0
                 cmp cl,8
-            jne CD_Lp
+            jne CD_LpMulti
 
 
         mov ch,px
         mov cl,py
+
         mov ah,1
         int 16h   
-        jz GameLP1
+        jz GameLP1Multi
 
         mov ah,0
         int 16h   
         
         cmp ah, 01
-        je ending
+        je endingMulti
 
 
         ;Check if select key pressed
         call far ptr HandleInput
-        call far ptr HandleInput2
+        ; call far ptr HandleInput2
 
         cmp winner,0
-        je GameLP1
+        je GameLP1Multi
         ; Press any key to exit
         ; mov ah,2
         ; mov dx,1407h
         ; int 10h
         cmp winner,1
-        je White_Wins
+        je White_WinsMulti
         lea bp, Winner_MessageB
-        jmp DispMsg
-        White_Wins:
+        jmp DispMsgMulti
+        White_WinsMulti:
         lea bp, Winner_MessageW
-        DispMsg:
+        DispMsgMulti:
          mov al, 1
         mov bh, 0
         mov bl, 4
-        mov cx, 12  
+        mov cx, 10
         mov dl, 14
         mov dh, 12
         push ds
@@ -244,28 +424,14 @@ GameScreen PROC FAR
         MOV AH , 0
         INT 16h
         ret
-        GameLP1:
-        jmp GameLP
+        GameLP1Multi:
+        jmp GameLPMulti
         
-    ending:
-    
-    ; ; Press any key to exit
-    ; MOV AH , 0
-    ; INT 16h
-    
-    
-    ; ;Change to Text MODE
-    ; MOV AH,0          
-    ; MOV AL,03h
-    ; INT 10h 
-
-    ; ; return control to operating system
-    ; MOV AH , 4ch
-    ; INT 21H
+    endingMulti:
     ret
-GameScreen ENDP
+GameScreenMulti ENDP
 
-;description
+;Initializes all variables to default values
 InitGame PROC Far
         pusha
 ;Initialize array to default values at start of game
@@ -327,10 +493,10 @@ InitGame PROC Far
         MOV ch,px
         MOV cl,py
         call RedrawPiece
-        DrawSq2 px2, py2
-        MOV ch,px2
-        MOV cl,py2
-        call RedrawPiece
+        ; DrawSq2 px2, py2
+        ; MOV ch,px2
+        ; MOV cl,py2
+        ; call RedrawPiece
 
          mov al, 1
         mov bh, 0
@@ -390,72 +556,72 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
                     ;   1-Check for input
                     ;   2-Move piece
                     ;   3-Getting available moves
-    MOV ch,px
-    MOV cl,py
-    cmp al,'q'
-    je Player1
-    cmp al,'d'
-    je RightP1
-    cmp al,'a'
-    je LeftP1
-    cmp al,'w'
-    je upP1
-    cmp al,'s'
-    je downP1
+    ; MOV ch,px
+    ; MOV cl,py
+    ; cmp al,'q'
+    ; je Player1
+    ; cmp al,'d'
+    ; je RightP1
+    ; cmp al,'a'
+    ; je LeftP1
+    ; cmp al,'w'
+    ; je upP1
+    ; cmp al,'s'
+    ; je downP1
 
-    ; cmp ah, 39h
-    ; je Player2
-    ; cmp ah, 4Dh
-    ; je RightP2
-    ; cmp ah, 4Bh
-    ; je LeftP2
-    ; cmp ah, 48h
-    ; je upP2
-    ; cmp ah, 50h
-    ; je downP2
+    cmp ah, 39h
+    je Player1
+    cmp ah, 4Dh
+    je RightP2
+    cmp ah, 4Bh
+    je LeftP2
+    cmp ah, 48h
+    je upP2
+    cmp ah, 50h
+    je downP2
     
     ret
 ;==================================
 ;This part is responsible for updating the selector position on key press
-    RightP1:  
+    ; RightP1:  
+    ; cmp px,8
+    ; je Return
+    ; add px,1
+    ; jmp Draw_Highlighted
+    ; LeftP1:
+    ; cmp px,1
+    ; je Return
+    ; sub px,1
+    ; jmp Draw_Highlighted
+    ; upP1:
+    ; cmp py,1
+    ; je Return
+    ; sub py,1
+    ; jmp Draw_Highlighted
+    ; downP1:
+    ; cmp py,8
+    ; je Return
+    ; add py,1
+
+    RightP2:  
     cmp px,8
     je Return
     add px,1
     jmp Draw_Highlighted
-    LeftP1:
+    LeftP2:
     cmp px,1
     je Return
     sub px,1
     jmp Draw_Highlighted
-    upP1:
+    upP2:
     cmp py,1
     je Return
     sub py,1
     jmp Draw_Highlighted
-    downP1:
+    downP2:
     cmp py,8
     je Return
     add py,1
-
-    ; RightP2:  
-    ; cmp px2,8
-    ; je Return
-    ; add px2,1
-    ; jmp Draw_Highlighted
-    ; LeftP2:
-    ; cmp px2,1
-    ; je Return
-    ; sub px2,1
-    ; jmp Draw_Highlighted
-    ; upP2:
-    ; cmp py2,1
-    ; je Return
-    ; sub py2,1
-    ; jmp Draw_Highlighted
-    ; downP2:
-    ; cmp py2,8
-    ; je Return
-    ; add py2,1
 
 
     jmp Draw_Highlighted
@@ -465,7 +631,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         ret
 
     Player1:
-    mov dl, 'W' ; W indicates that it is player one that is selecting
+    mov dl, Player ; W indicates that it is player one that is selecting
     jmp select_mid
 
     ; Player2:
@@ -480,14 +646,14 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call RedrawPiece ; redraw piece if any at the old location
 
 
-        cmp hx2,0
-        je skip2
-        ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
-        DrawSq2 hx2, hy2
-        mov ch, hx2
-        mov cl, hy2
-        call RedrawPiece
-        skip2:
+        ; cmp hx2,0
+        ; je skip2
+        ; ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+        ; DrawSq2 hx2, hy2
+        ; mov ch, hx2
+        ; mov cl, hy2
+        ; call RedrawPiece
+        ; skip2:
        
         cmp hx,0
         je skip
@@ -498,10 +664,10 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call RedrawPiece
         skip:
 
-        mov ch,px2
-        mov cl,py2
-        DrawSq2 px2, py2 ;draw higlighting of new square
-        call RedrawPiece ;
+        ; mov ch,px2
+        ; mov cl,py2
+        ; DrawSq2 px2, py2 ;draw higlighting of new square
+        ; call RedrawPiece ;
         mov ch,px
         mov cl,py
         DrawSq px, py ;draw higlighting of new square
@@ -519,6 +685,19 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         call List_Contains
         cmp al,0 ; selected pos is not a valid move
         je Check_Valid_Attack
+
+            ; send the move i just made to the other player
+            lea di,SMsg
+            mov cl,hx
+            mov [di], cl
+            mov cl,hy
+            mov [di+1], cl
+            mov cl,px
+            mov [di+2], cl
+            mov cl,py
+            mov [di+3], cl
+            call SendMsg
+
         call Move_Piece
 
         jmp H_I_ClearValidLists
@@ -553,7 +732,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             mov bl,'4'  ; king number ex B4 is black king
             cmp [di+1],bl
             jne HI_AppendDeadPiece
-            mov Winner,1 ;winner 0 => no winner 1 => white wins 2 => Black wins
+            mov Winner,1 ;winner 0 => no winner 1 => I win 2 => Other player wins
 
             HI_AppendDeadPiece:
                 mov bl,'$'  ;get last element in array to append at the end
@@ -566,20 +745,33 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
                 mov [si],bh
                 mov [si+1],bl
 
-
+        pusha
+         ; send the move i just made to the other player
+            lea di,SMsg
+            mov cl,hx
+            mov [di], cl
+            mov cl,hy
+            mov [di+1], cl
+            mov cl,px
+            mov [di+2], cl
+            mov cl,py
+            mov [di+3], cl
+            call SendMsg
+        popa
+        
             call Move_Piece 
             
-            cmp hx2,0
-            je H_I_ClearValidLists
+            ; cmp hx2,0
+            ; je H_I_ClearValidLists
             
-            mov ch, px
-            mov cl, py
-            cmp hx2,ch
-            jne G3
-            cmp hy2,cl
-            jne G3
-            DeselectPlayer2
-            G3:
+            ; mov ch, px
+            ; mov cl, py
+            ; cmp hx2,ch
+            ; jne G3
+            ; cmp hy2,cl
+            ; jne G3
+            ; DeselectPlayer2
+            ; G3:
             ; call ClearValidLists2
 
             ; mov ch,hx2
@@ -591,17 +783,17 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
         H_I_ClearValidLists:
             call ClearValidLists
 
-            cmp hx2,0
-            je HI_S1
-            DrawSq2 hx2,hy2 ;ba redraw el background of el selected piece bta3t el team el tany 
-                            ;34an lw kan selected w kan valid attack lama ams7 el attack el selector maytms74
-            mov ch,hx2
-            mov cl,hy2
-            call RedrawPiece
-            HI_S1:         
+            ; cmp hx2,0
+            ; je HI_S1
+            ; DrawSq2 hx2,hy2 ;ba redraw el background of el selected piece bta3t el team el tany 
+            ;                 ;34an lw kan selected w kan valid attack lama ams7 el attack el selector maytms74
+            ; mov ch,hx2
+            ; mov cl,hy2
+            ; call RedrawPiece
+            ; HI_S1:         
 
             DeselectPlayer1
-            DrawSq2 px2,py2
+            ; DrawSq2 px2,py2
             ; call DrawPossibleMoves
             ; call DrawPossibleAttacks
             ; call DrawDeadP
@@ -670,305 +862,305 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
             call DrawPossibleMoves
             call DrawPossibleAttacks
             
-            DrawSq2 px2,py2
-            mov ch, px2
-            mov cl, py2
-            call RedrawPiece
+            ; DrawSq2 px2,py2
+            ; mov ch, px2
+            ; mov cl, py2
+            ; call RedrawPiece
 
-            cmp hx2,0
-            je HI_S2
-            DrawSq2 hx2,hy2
-            mov ch,hx2
-            mov cl,hy2
-            call RedrawPiece
-            HI_S2:
+            ; cmp hx2,0
+            ; je HI_S2
+            ; DrawSq2 hx2,hy2
+            ; mov ch,hx2
+            ; mov cl,hy2
+            ; call RedrawPiece
+            ; HI_S2:
             ret    
 HandleInput ENDP
 
 ;black
-HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
-                    ;Handles all game logic
-                    ;Including:
-                    ;   1-Check for input
-                    ;   2-Move piece
-                    ;   3-Getting available moves
+; HandleInput2 PROC Far   ; the user input is in ax => al:ascii ah:scan code
+;                     ;Handles all game logic
+;                     ;Including:
+;                     ;   1-Check for input
+;                     ;   2-Move piece
+;                     ;   3-Getting available moves
 
                      
-    MOV ch,px2
-    MOV cl,py2
+;     MOV ch,px2
+;     MOV cl,py2
 
 
-    cmp ah, 39h ;space
-    je Player2 
-    cmp ah, 4Dh ;right arrow
-    je RightP2
-    cmp ah, 4Bh ;left arrow
-    je LeftP2
-    cmp ah, 48h ;up arrow
-    je upP2
-    cmp ah, 50h ;down arrow
-    je downP2
+;     cmp ah, 39h ;space
+;     je Player2 
+;     cmp ah, 4Dh ;right arrow
+;     je RightP2
+;     cmp ah, 4Bh ;left arrow
+;     je LeftP2
+;     cmp ah, 48h ;up arrow
+;     je upP2
+;     cmp ah, 50h ;down arrow
+;     je downP2
     
-    ret
-;==================================
-;This part is responsible for updating the selector position on key press
-    RightP2:  
-    cmp px2,8
-    je Return2
-    add px2,1
-    jmp Draw_Highlighted2
-    LeftP2:
-    cmp px2,1
-    je Return2
-    sub px2,1
-    jmp Draw_Highlighted2
-    upP2:
-    cmp py2,1
-    je Return2
-    sub py2,1
-    jmp Draw_Highlighted2
-    downP2:
-    cmp py2,8
-    je Return2
-    add py2,1
+;     ret
+; ;==================================
+; ;This part is responsible for updating the selector position on key press
+;     RightP2:  
+;     cmp px2,8
+;     je Return2
+;     add px2,1
+;     jmp Draw_Highlighted2
+;     LeftP2:
+;     cmp px2,1
+;     je Return2
+;     sub px2,1
+;     jmp Draw_Highlighted2
+;     upP2:
+;     cmp py2,1
+;     je Return2
+;     sub py2,1
+;     jmp Draw_Highlighted2
+;     downP2:
+;     cmp py2,8
+;     je Return2
+;     add py2,1
 
 
-    jmp Draw_Highlighted2
-    select_mid2:jmp select2
+;     jmp Draw_Highlighted2
+;     select_mid2:jmp select2
 
-    Return2:
-        ret
+;     Return2:
+;         ret
 
-    Player2:
+;     Player2:
 
-    mov dl, 'B' ; B indicates that it is player two that is selecting
-    jmp select2
-;==================================
-;This part is responsible for drawing selector position update
-    Draw_Highlighted2:
-        call RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
-        call DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
-        call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
-        call RedrawPiece ; redraw piece if any at the old location
+;     mov dl, Player ; B indicates that it is player two that is selecting
+;     jmp select2
+; ;==================================
+; ;This part is responsible for drawing selector position update
+;     Draw_Highlighted2:
+;         call RedrawBoardSq ; redaraw the current as a normal board square (not higlighted) before moving 
+;         call DrawPossibleMoves ; need to redraw possible moves so that it is not erased if selector gets on a valid move's square
+;         call DrawPossibleAttacks ; need to redraw possible moves so that it is not erased if selector gets on a valid attack's square
+;         call RedrawPiece ; redraw piece if any at the old location
 
         
 
-        cmp hx,0
-        je skip4
-        ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
-        DrawSq hx, hy
-        mov ch, hx
-        mov cl, hy
-        call RedrawPiece
-        skip4:
+;         cmp hx,0
+;         je skip4
+;         ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+;         DrawSq hx, hy
+;         mov ch, hx
+;         mov cl, hy
+;         call RedrawPiece
+;         skip4:
 
-        cmp hx2,0
-        je skip3
-        ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
-        DrawSq2 hx2, hy2
-        mov ch, hx2
-        mov cl, hy2
-        call RedrawPiece
-        skip3:
+;         cmp hx2,0
+;         je skip3
+;         ;===== drawing a background behind the selected piece bs need to erase it b3d kda when another piece is selected
+;         DrawSq2 hx2, hy2
+;         mov ch, hx2
+;         mov cl, hy2
+;         call RedrawPiece
+;         skip3:
 
-        mov ch,px
-        mov cl,py
-        DrawSq px, py ;draw higlighting of new square
-        call RedrawPiece
-        mov ch,px2
-        mov cl,py2
-        DrawSq2 px2, py2 ;draw higlighting of new square
-        call RedrawPiece ;
-        ; mov ch,px2
-        ; mov cl,py2
-        ; DrawSq px2, py2 ;draw higlighting of new square
-        ; call RedrawPiece ; 
-        ret
-;==================================
-;This part is responsible for moving and attacking logic
-    select2:
+;         mov ch,px
+;         mov cl,py
+;         DrawSq px, py ;draw higlighting of new square
+;         call RedrawPiece
+;         mov ch,px2
+;         mov cl,py2
+;         DrawSq2 px2, py2 ;draw higlighting of new square
+;         call RedrawPiece ;
+;         ; mov ch,px2
+;         ; mov cl,py2
+;         ; DrawSq px2, py2 ;draw higlighting of new square
+;         ; call RedrawPiece ; 
+;         ret
+; ;==================================
+; ;This part is responsible for moving and attacking logic
+;     select2:
         
-    ;check if valid move
-        mov ch,px2
-        mov cl,py2
-        call to_idx
-        lea si,ValidMoves2
-        call List_Contains
-        cmp al,0 ; selected pos is not a valid move
-        je Check_Valid_Attack2
-        call Move_Piece2
+;     ;check if valid move
+;         mov ch,px2
+;         mov cl,py2
+;         call to_idx
+;         lea si,ValidMoves2
+;         call List_Contains
+;         cmp al,0 ; selected pos is not a valid move
+;         je Check_Valid_Attack2
+;         call Move_Piece2
     
 
-        ; call ClearValidLists
-        ; mov ch,hx
-        ; mov cl,hy
-        ; call GetValidMoves
+;         ; call ClearValidLists
+;         ; mov ch,hx
+;         ; mov cl,hy
+;         ; call GetValidMoves
 
-        jmp H_I_ClearValidLists2
+;         jmp H_I_ClearValidLists2
         
-        Check_Valid_Attack2:
-            lea si, ValidAttacks2
-            call List_Contains
-            cmp al,0 ; selected pos is not a valid attack 
-            jne Skip_Check_Empty2
-            ; mov al, '0'
-            ; cmp [di], al ; check if position is empty and not valid move or attack
-            ; je H_I_ClearValidLists_Mid2
-            jmp Sel2
-            ;============================
-            H_I_ClearValidLists_Mid2:
-            jmp H_I_ClearValidLists2
-            ;============================
+;         Check_Valid_Attack2:
+;             lea si, ValidAttacks2
+;             call List_Contains
+;             cmp al,0 ; selected pos is not a valid attack 
+;             jne Skip_Check_Empty2
+;             ; mov al, '0'
+;             ; cmp [di], al ; check if position is empty and not valid move or attack
+;             ; je H_I_ClearValidLists_Mid2
+;             jmp Sel2
+;             ;============================
+;             H_I_ClearValidLists_Mid2:
+;             jmp H_I_ClearValidLists2
+;             ;============================
 
-            Skip_Check_Empty2:
-            mov al, 'B'
-            cmp [di], al
-            je kill_Black2
-            ;kill white
-            lea si, W_DeadPiece
-            jmp Kill_Piece2
-            kill_Black2:
-            lea si, B_DeadPiece
-            Kill_Piece2:
-
-
-            mov bl,'4'
-            cmp [di+1],bl
-            jne HI_AppendDeadPiece2
-            mov Winner,2 ;winner 0 => no winner 1 => white wins 2 => Black wins
+;             Skip_Check_Empty2:
+;             mov al, 'B'
+;             cmp [di], al
+;             je kill_Black2
+;             ;kill white
+;             lea si, W_DeadPiece
+;             jmp Kill_Piece2
+;             kill_Black2:
+;             lea si, B_DeadPiece
+;             Kill_Piece2:
 
 
-            HI_AppendDeadPiece2:
+;             mov bl,'4'
+;             cmp [di+1],bl
+;             jne HI_AppendDeadPiece2
+;             mov Winner,2 ;winner 0 => no winner 1 => white wins 2 => Black wins
 
 
-            mov bl,'$'  ;get last element in array to append at the end
-            sub si,2
-            GetEnd2:add si,2
-                cmp [si],bl
-                jne GetEnd2
-            mov bh,[di]
-            mov bl,[di+1]
-            mov [si],bh
-            mov [si+1],bl
-            call Move_Piece2 
+;             HI_AppendDeadPiece2:
 
-            cmp hx,0
-            je H_I_ClearValidLists2
+
+;             mov bl,'$'  ;get last element in array to append at the end
+;             sub si,2
+;             GetEnd2:add si,2
+;                 cmp [si],bl
+;                 jne GetEnd2
+;             mov bh,[di]
+;             mov bl,[di+1]
+;             mov [si],bh
+;             mov [si+1],bl
+;             call Move_Piece2 
+
+;             cmp hx,0
+;             je H_I_ClearValidLists2
             
-            mov ch, px2
-            mov cl, py2
-            cmp hx,ch
-            jne G4
-            cmp hy,cl
-            jne G4
-            DeselectPlayer1
-            G4:
-            ; call ClearValidLists
+;             mov ch, px2
+;             mov cl, py2
+;             cmp hx,ch
+;             jne G4
+;             cmp hy,cl
+;             jne G4
+;             DeselectPlayer1
+;             G4:
+;             ; call ClearValidLists
 
-            ; mov ch,hx
-            ; mov cl,hy
-            ; call GetValidMoves
-            ;call DrawPossibleMoves
+;             ; mov ch,hx
+;             ; mov cl,hy
+;             ; call GetValidMoves
+;             ;call DrawPossibleMoves
                        
-;==================================
-;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
-        H_I_ClearValidLists2:
-            call ClearValidLists2
+; ;==================================
+; ;This part is responsible for re-inializing valid attack/move lists and drawing the updates of attacking/moving 
+;         H_I_ClearValidLists2:
+;             call ClearValidLists2
             
-            cmp hx,0
-            je HI_S3
-            DrawSq hx,hy ;lw player el tany kan 3aml select 7aga haroo7 arsm el selector tany
-            mov ch,hx
-            mov cl,hy
-            call RedrawPiece
+;             cmp hx,0
+;             je HI_S3
+;             DrawSq hx,hy ;lw player el tany kan 3aml select 7aga haroo7 arsm el selector tany
+;             mov ch,hx
+;             mov cl,hy
+;             call RedrawPiece
     
 
-            HI_S3:
-            DeselectPlayer2
-            DrawSq px,py
-            ; call DrawPossibleMoves
-            ; call DrawDeadP
+;             HI_S3:
+;             DeselectPlayer2
+;             DrawSq px,py
+;             ; call DrawPossibleMoves
+;             ; call DrawDeadP
     
-            ret
+;             ret
 
-;==================================
-;This part is responsible for selecting a new piece and drawing its valid moves & attacks 
-        Sel2:
+; ;==================================
+; ;This part is responsible for selecting a new piece and drawing its valid moves & attacks 
+;         Sel2:
 
-            mov ch, px2
-            mov cl, py2
-            call to_idx
+;             mov ch, px2
+;             mov cl, py2
+;             call to_idx
 
-            cmp [di], dl
-            je Valid_Sel2
-            ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
-            DeselectPlayer2
-            call ClearValidLists2 
-            call DrawPossibleAttacks
+;             cmp [di], dl
+;             je Valid_Sel2
+;             ; should Deslect player1 if Q is pressed and Deselect player2 when Space is pressed
+;             DeselectPlayer2
+;             call ClearValidLists2 
+;             call DrawPossibleAttacks
 
-            ret
+;             ret
 
-            Valid_Sel2:
-            ;Make sure the piece to be selected isn't on cooldown
-                ;Calculating the current piece's position in the piece cooldown array
-                mov al, px2
-                dec al ; cause the cooldown array is 0 indexed
-                mov ah,0
-                mov bl, 2
-                mul bl
-                mov bh, al
+;             Valid_Sel2:
+;             ;Make sure the piece to be selected isn't on cooldown
+;                 ;Calculating the current piece's position in the piece cooldown array
+;                 mov al, px2
+;                 dec al ; cause the cooldown array is 0 indexed
+;                 mov ah,0
+;                 mov bl, 2
+;                 mul bl
+;                 mov bh, al
                 
-                mov al, py2
-                dec al ; cause the cooldown array is 0 indexed
-                mov ah,0
-                mov bl, 16
-                mul bl
+;                 mov al, py2
+;                 dec al ; cause the cooldown array is 0 indexed
+;                 mov ah,0
+;                 mov bl, 16
+;                 mul bl
 
-                add al, bh
-                mov si, ax
+;                 add al, bh
+;                 mov si, ax
 
-                ;checking if the piece is on cooldown. 0 ==> no cooldown  otherwise ==> on cooldown
-                mov ax, 0
-                lea bx, CoolDownPieces
-                cmp [word ptr bx + si], ax
-                je HI_SelectNewPiece2
-                DeselectPlayer2
-                call ClearValidLists2
-                ret
-            HI_SelectNewPiece2:
+;                 ;checking if the piece is on cooldown. 0 ==> no cooldown  otherwise ==> on cooldown
+;                 mov ax, 0
+;                 lea bx, CoolDownPieces
+;                 cmp [word ptr bx + si], ax
+;                 je HI_SelectNewPiece2
+;                 DeselectPlayer2
+;                 call ClearValidLists2
+;                 ret
+;             HI_SelectNewPiece2:
 
-            mov ch, hx2
-            mov cl, hy2
-            call RedrawBoardSq
-            call RedrawPiece
+;             mov ch, hx2
+;             mov cl, hy2
+;             call RedrawBoardSq
+;             call RedrawPiece
 
-            mov ch, px2
-            mov cl, py2
+;             mov ch, px2
+;             mov cl, py2
 
-            mov hx2, ch
-            mov hy2, cl 
-            call ClearValidLists2
+;             mov hx2, ch
+;             mov hy2, cl 
+;             call ClearValidLists2
 
-            mov ch, px2
-            mov cl, py2
-            call GetValidMoves
-            call DrawPossibleMoves
-            call DrawPossibleAttacks
+;             mov ch, px2
+;             mov cl, py2
+;             call GetValidMoves
+;             call DrawPossibleMoves
+;             call DrawPossibleAttacks
 
-            DrawSq px,py
-            mov ch, px
-            mov cl, py
-            call RedrawPiece
+;             DrawSq px,py
+;             mov ch, px
+;             mov cl, py
+;             call RedrawPiece
 
-            cmp hx,0
-            je HI_S4
-            DrawSq hx,hy
-            mov ch,hx
-            mov cl,hy
-            call RedrawPiece
-            HI_S4:
-            ret    
-HandleInput2 ENDP
+;             cmp hx,0
+;             je HI_S4
+;             DrawSq hx,hy
+;             mov ch,hx
+;             mov cl,hy
+;             call RedrawPiece
+;             HI_S4:
+;             ret    
+; HandleInput2 ENDP
 
 ;checks if a value in cx is contained in an array. lea si, array
 ;array's end is denoted by a $
@@ -1020,6 +1212,8 @@ Move_Piece PROC
 
     ; mov ax,1
     ; mov [word ptr bx + si], ax
+
+
 
     MP_CheckKing:
     
@@ -1264,23 +1458,18 @@ to_px ENDP
 GetValidMoves PROC
     pusha
 
-    ; mov dl,'3'
-    ; mov ah,2
-    ; int 21h
 
     call to_idx
     mov bl, '0'
-    mov dl, 'B'
-    cmp [di],dl
-    je LoadBlack
+
+    ;Check if multiplayer then always load the moves in ValidMoves
+    ; cmp Mode, 1
+    ; jne LocalGame
+
     mov dx,0
     lea si, ValidMoves
     ;lea bx, ValidAttacks
-    jmp Compare
-    LoadBlack:
-    ;lea bx, ValidAttacks2
-    lea si, ValidMoves2
-    mov dx,82
+
 
     Compare:
     mov bl, '0'
@@ -1310,18 +1499,9 @@ GetValidMoves PROC
     ret
     pkt:        ;possible moves for knight
 
-     mov dl, 'B'
-    cmp [di],dl
-    je LoadBlack2
     lea bx, ValidMoves
     lea si, ValidAttacks
-    ;lea bx, ValidAttacks
-    jmp Compare2
-    LoadBlack2:
-    ;lea bx, ValidAttacks2
-    lea bx, ValidMoves2
-    lea si, ValidAttacks2
-    Compare2:
+
 
     call Moves_knight
     popa
@@ -1344,18 +1524,10 @@ GetValidMoves PROC
     ret
     ppw:        ;possible moves for pawn
 
-    mov dl, 'B'
-    cmp [di],dl
-    je LoadBlack3
+
     lea bx, ValidMoves
     lea dx, ValidAttacks
-    ;lea bx, ValidAttacks
-    jmp Compare3
-    LoadBlack3:
-    ;lea bx, ValidAttacks2
-    lea bx, ValidMoves2
-    lea dx, ValidAttacks2
-    Compare3:
+
 
     call Moves_pawn
     popa
@@ -2592,7 +2764,7 @@ Is_Check PROC
         ret
 Is_Check ENDP
 
-;description
+;Checks if a king is in check and prints a notification fo the players
 UpdateCheck PROC
     ; pusha
     ;            mov dl, 13
@@ -2743,10 +2915,10 @@ ClearValidLists proc
     mov cl,py
     call RedrawPiece
 
-    DrawSq2 px2,py2
-    mov ch,px2
-    mov cl,py2
-    call RedrawPiece
+    ; DrawSq2 px2,py2
+    ; mov ch,px2
+    ; mov cl,py2
+    ; call RedrawPiece
 
     ret
 ClearValidLists ENDP
@@ -2813,11 +2985,11 @@ DrawingChecks PROC
 
         GS_CheckPX2:
 
-        cmp ch, px2
-        jne GS_CheckAttack
-        cmp cl, py2
-        jne GS_CheckAttack
-        DrawSq2 px2 , py2
+        ; cmp ch, px2
+        ; jne GS_CheckAttack
+        ; cmp cl, py2
+        ; jne GS_CheckAttack
+        ; DrawSq2 px2 , py2
         ;jmp GS_CheckAttack
 
         ;check if the current position is a valid attack for either black or white
@@ -2990,10 +3162,10 @@ pusha
 
     ;==========================
     ;refreshing the valid moves of the enemy 
-    call ClearValidLists2
-    mov ch,hx2
-    mov cl,hy2
-    call GetValidMoves
+    ; call ClearValidLists2
+    ; mov ch,hx2
+    ; mov cl,hy2
+    ; call GetValidMoves
 
     call ClearValidLists
     mov ch,hx
@@ -3042,6 +3214,193 @@ popa
     popa
     ret
 Animate ENDP
+
+
+;Recieves 1 byte and puts it in [di]
+;9 -> didnt recieve 7aga 
+RecieveByte PROC
+    pusha
+        ;Check that Data Ready
+            mov dx , 3FDH		; Line Status Register
+    	    in al , dx 
+
+            AND al , 1
+            JNZ CHK
+            
+            mov al, 9
+            mov [di], al 
+            popa
+            ret
+    CHK:
+    ;If Ready read the VALUE in Receive data register
+            mov dx , 03F8H
+            in al , dx 
+            mov [di] , AL
+            popa
+            ret
+RecieveByte ENDP
+
+;description
+RecieveMsg PROC
+    pusha
+
+    ;msg structure hyb2a 00 start pos 00 end pos
+
+    lea di, RMsg
+    call RecieveByte
+    cmp RMsg, 9
+    jne Recieve    
+    popa
+    ret
+
+    Recieve:
+    mov ah, 9
+
+    mov al, [di]
+    mov hx2, al
+   ; call PrintNumber
+
+    inc di
+    J1:call RecieveByte
+    cmp [di], ah
+    je J1 
+
+    mov al, [di]
+    ;call PrintNumber
+    mov hy2, al
+
+    inc di
+    J2:call RecieveByte
+    cmp [di], ah
+    je J2
+
+    mov al, [di]
+    ;call PrintNumber
+    mov px2, al
+
+    inc di
+    J3:call RecieveByte
+    cmp [di], ah
+    je J3
+    
+    mov al, [di]
+    ;call PrintNumber
+    mov py2, al
+
+    ;     mov ah,1
+    ; int 21h
+    ; mov al,RMsg
+    ; mov hx2, al
+    ; mov al,RMsg +1
+    ; mov hy2, al
+    ; mov al,RMsg + 2
+    ; mov px2, al
+    ; mov al,RMsg + 3
+    ; mov py2, al
+
+    mov ch,px2
+    mov cl,py2
+    call to_idx
+    ; check if end pos had a piece
+    mov dl, '0'
+    cmp [di],dl
+    je Skip_Appending_dp ;deadpiece
+
+    mov al, 'B'
+    cmp [di], al
+    je kill_Black2
+    ;kill white
+    lea si, W_DeadPiece
+    jmp Kill_Piece2
+    kill_Black2:
+    lea si, B_DeadPiece
+    Kill_Piece2:
+
+    mov bl,'4'  ; king number ex B4 is black king
+    cmp [di+1],bl
+    jne HI_AppendDeadPiece2
+    mov Winner, 2 ;winner 0 => no winner 1 => I win 2 => Other player wins
+
+    HI_AppendDeadPiece2:
+        mov bl,'$'  ;get last element in array to append at the end
+        sub si,2
+        GetEnd2:add si,2
+            cmp [si],bl
+            jne GetEnd2
+        mov bh,[di]
+        mov bl,[di+1]
+        mov [si],bh
+        mov [si+1],bl
+
+
+    Skip_Appending_dp:
+    call Move_Piece2
+
+    lea di,RMsg
+    mov dl, 9
+    mov [di], dl
+    mov [di+1], dl
+    mov [di+2], dl
+    mov [di+3], dl
+
+    popa
+    ret
+RecieveMsg ENDP
+
+;byb3at byte wa7da
+;bya5odha f [di]
+SendByte PROC
+    pusha
+  ;Check that Transmitter Holding Register is Empty
+            mov dx , 3FDH		; Line Status Register
+    AGAIN:  
+            In al , dx 			;Read Line Status
+            AND al , 00100000b
+            JZ AGAIN
+
+            ; mov al, 9;==> error didnt send
+            ; ret
+    ;If empty put the VALUE in Transmit data register
+            mov dx , 3F8H		; Transmit data register
+            mov al, [di]
+            out dx , al 
+    popa
+    ret
+SendByte ENDP
+    
+
+SendMsg PROC
+    pusha
+    lea di,SMsg
+    mov dl, 9
+    cmp [di], dl
+    jne StartSend
+    
+    popa
+    ret
+
+    StartSend:
+    call SendByte
+
+    inc di
+    call SendByte
+
+    inc di
+    call SendByte
+
+    inc di
+    call SendByte
+
+    ;clear send msg
+    lea di,SMsg
+    mov [di], dl
+    mov [di+1], dl
+    mov [di+2], dl
+    mov [di+3], dl
+    
+    popa
+    ret
+SendMsg ENDP
 
 
 END ;MAIN

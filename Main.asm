@@ -1,5 +1,13 @@
-EXTRN GameScreen:FAR
+; EXTRN GameScreenLocal:FAR
+EXTRN GameScreenMulti:FAR
 EXTRN LoadAssets:FAR
+EXTRN RecieveByte:FAR
+EXTRN SendByte:FAR
+EXTRN PrintNumber:FAR
+EXTRN Player:Byte
+EXTRN SMsg:Byte
+EXTRN RMsg:Byte
+EXTRN Mode:Byte
 Public name1
 Public name2
 
@@ -18,10 +26,12 @@ Public name2
     Press_Enter db 'Press any button To contiue','$';27
     Greeting db 'Hello $'
     ChatMsg db 'To start chatting press F1','$'; 25
-    StartGameMsg db 'To start the game press F2','$';26
+    StartGameMsgLocal db 'To start the game press local mode F2','$';37
+    StartGameMsgMulti db 'To start the game press F3','$';26
     CloseMsg db 'To end the program press ESC','$' ;28
     numB db 0     
     numAns db 0
+
 
 .code
 
@@ -34,6 +44,27 @@ Main PROC
     mov ds,ax
 
     call LoadAssets
+
+    ; initinalize COM
+    ;Set Divisor Latch Access Bit
+    mov dx,3fbh 			; Line Control Register
+    mov al,10000000b		;Set Divisor Latch Access Bit
+    out dx,al				;Out it
+    ;Set LSB byte of the Baud Rate Divisor Latch register.
+    mov dx,3f8h			
+    mov al,0ch			
+    out dx,al
+
+    ;Set MSB byte of the Baud Rate Divisor Latch register.
+    mov dx,3f9h
+    mov al,00h
+    out dx,al
+
+    ;Set port configuration
+    mov dx,3fbh
+    mov al,00011011b
+    out dx,al
+    
     
     lea bx, name1
     call GetNameScreen
@@ -42,19 +73,33 @@ Main PROC
     
     MainMenu:
         call MainMenuScreen
-    
+        lea di,RMsg
         GetInput:
-            mov ah,0
+            call RecieveByte
+            cmp RMsg, 'G' ;recieved the letter 'G' means that the other player is sending a game invite
+            ;mov al, RMsg
+            ;call PrintNumber
+            je BGameMode2
+
+            mov ah, 1
             int 16h  
+            jz GetInput
+
+            mov ah, 0
+            int 16h  
+            
 
             ; cmp ah, 3Bh
             ; je Chat    
             
-            cmp ah, 3Ch
-            je Game    
+            ; cmp ah, 3Ch
+            ; je GameMode1    
+            
+            cmp ah, 3Dh
+            je SendInvite   
 
             cmp ah, 01
-            je EndLabel    
+            je EndLabel   
 
             jmp GetInput
 
@@ -62,8 +107,25 @@ Main PROC
         ;To Be Implemented          
 
 
-    Game:
-        call GameScreen
+    ; GameMode1: ; 2 players on same device
+    ;     mov Mode, 0
+    ;     call GameScreenLocal
+    ;     jmp MainMenu
+    
+
+    BGameMode2:
+        mov RMsg, 9
+        mov Player, 'B'
+        jmp GameMode2 
+    SendInvite:
+        mov SMsg, 'G'
+        lea di,SMsg
+        call SendByte
+        mov SMsg, 9
+        mov Player , 'W'
+    GameMode2: ; 2 players on different devices
+        mov Mode, 1
+        call GameScreenMulti
         jmp MainMenu
     
     
@@ -104,18 +166,28 @@ MainMenuScreen PROC
 
      MOV AH,2
     MOV BH,00
-    MOV DL,27
+    MOV DL,22
     MOV DH,11
     INT 10H
 
     mov ah, 9
-    mov dx, offset StartGameMsg
+    mov dx, offset StartGameMsgLocal
+    int 21h
+
+     MOV AH,2
+    MOV BH,00
+    MOV DL,27
+    MOV DH,14
+    INT 10H
+
+    mov ah, 9
+    mov dx, offset StartGameMsgMulti
     int 21h
 
     MOV AH,2
     MOV BH,00
     MOV DL,26
-    MOV DH,14
+    MOV DH,17
     INT 10H
     ; print 'hello ' + name
     mov ah, 9
@@ -280,7 +352,6 @@ Read_Limited_Input proc ; Cx ->  max number of characters to read
     popa
     ret 
 Read_Limited_Input endp
-
 
 
 end main
