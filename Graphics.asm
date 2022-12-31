@@ -699,53 +699,39 @@ DrawDeadP PROC FAR
     lea di,B_DeadPiece
     mov al,'$'
     
-    mov ch,-2
+    mov ch,-3
     mov cl,0
     lp4:
-        cmp cl,8
+        cmp ch,0
         je n1
         cmp [di],al
         je drawW
         call far ptr DrawRightPiece
-        inc cl
+        inc ch
         add di,2
         jmp lp4
-    n1:mov ch,-1
-    mov cl,0
-    lp5:
-        cmp cl,8
-        je drawW
-        cmp [di],al
-        je drawW
-        call far ptr DrawRightPiece
+        n1:
         inc cl
-        add di,2
-        jmp lp5
+        mov ch,-3
+        jmp lp4
     ;White
     drawW:
     lea di,W_DeadPiece
-    mov ch,11d
-    mov cl,0
-    lp6:
-        cmp cl,8
+    mov ch,10d
+    mov cl,1
+    lp5:
+        cmp ch,13
         je n2
         cmp [di],al
         je done
-        inc cl
         call far ptr DrawRightPiece
+        inc ch
         add di,2
-        jmp lp6
-    n2:dec ch
-    mov cl,1
-    lp7:
-        cmp cl,9
-        je done
-        cmp [di],al
-        je done
-        call far ptr DrawRightPiece
+        jmp lp5
+        n2:
         inc cl
-        add di,2
-        jmp lp7
+        mov ch,10d
+        jmp lp5
     done:
     popa
     ret
