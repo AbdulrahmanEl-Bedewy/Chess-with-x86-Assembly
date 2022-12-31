@@ -18,7 +18,7 @@ Public to_idx
 ; Public GameScreenLocal
 Public GameScreenMulti  
 Public SendByte
-Public RecieveByte
+Public ReceiveByte
 Public PrintNumber
 
 Public chessBoard
@@ -309,7 +309,7 @@ GameScreenMulti PROC
     ;MAIN GAME LOOP
     GameLPMulti:
         call far ptr GetFrameTime
-        call RecieveMsg
+        call ReceiveMsg
         call Animate
         
         
@@ -3175,7 +3175,7 @@ pusha
     ; mov ch,hx2
     ; mov cl,hy2
     ; call GetValidMoves
-    
+
     mov ch, px2
     mov cl, py2
     cmp hx,ch
@@ -3237,7 +3237,7 @@ Animate ENDP
 
 ;Recieves 1 byte and puts it in [di]
 ;9 -> didnt recieve 7aga 
-RecieveByte PROC
+ReceiveByte PROC far
     pusha
         ;Check that Data Ready
             mov dx , 3FDH		; Line Status Register
@@ -3257,16 +3257,16 @@ RecieveByte PROC
             mov [di] , AL
             popa
             ret
-RecieveByte ENDP
+ReceiveByte ENDP
 
 ;description
-RecieveMsg PROC
+ReceiveMsg PROC
     pusha
 
     ;msg structure hyb2a 00 start pos 00 end pos
 
     lea di, RMsg
-    call RecieveByte
+    call ReceiveByte
     cmp RMsg, 9
     jne Recieve    
     popa
@@ -3280,7 +3280,7 @@ RecieveMsg PROC
    ; call PrintNumber
 
     inc di
-    J1:call RecieveByte
+    J1:call ReceiveByte
     cmp [di], ah
     je J1 
 
@@ -3289,7 +3289,7 @@ RecieveMsg PROC
     mov hy2, al
 
     inc di
-    J2:call RecieveByte
+    J2:call ReceiveByte
     cmp [di], ah
     je J2
 
@@ -3298,7 +3298,7 @@ RecieveMsg PROC
     mov px2, al
 
     inc di
-    J3:call RecieveByte
+    J3:call ReceiveByte
     cmp [di], ah
     je J3
     
@@ -3364,11 +3364,11 @@ RecieveMsg PROC
 
     popa
     ret
-RecieveMsg ENDP
+ReceiveMsg ENDP
 
 ;byb3at byte wa7da
 ;bya5odha f [di]
-SendByte PROC
+SendByte PROC far
     pusha
   ;Check that Transmitter Holding Register is Empty
             mov dx , 3FDH		; Line Status Register
