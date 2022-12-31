@@ -58,8 +58,7 @@ ChatScreen proc far
 	 call SCROLLInputScreen
 	 call SCROLLOutputScreen
 	 
-	MOV AH,4CH
-	INT 21H	 
+	ret 
 	
     ChatScreen ENDP
 	
@@ -211,7 +210,7 @@ mov cx,25         ;the length of the screen
 lp:
 	mov ah,2      ;to move the cursor the the values of(dl,dh)
 	int 10h
-	mov dl,'H'   ;to print H to separate the screen at the middle
+	mov dl,186   ;to print H to separate the screen at the middle
 	int 21h
 	mov dl,38
 	inc dh
