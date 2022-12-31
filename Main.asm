@@ -80,6 +80,7 @@ Main PROC
             ;mov al, RMsg
             ;call PrintNumber
             je BGameMode2
+        
 
             mov ah, 1
             int 16h  

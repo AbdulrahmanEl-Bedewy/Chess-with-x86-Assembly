@@ -1233,16 +1233,16 @@ Move_Piece PROC
     mov ch,px
     mov cl,py
 
-    ; mov al,'B'
-    ; cmp [di], al
-    ; je Black_King
+    mov al,'B'
+    cmp Player, al
+    je Black_King
     mov W_King_X,ch
     mov W_King_Y,cl
-    ; jmp SkipKingUpdate
+    jmp SkipKingUpdate
 
-    ; Black_King:
-    ; mov B_King_X,ch
-    ; mov B_King_Y,cl
+    Black_King:
+    mov B_King_X,ch
+    mov B_King_Y,cl
     SkipKingUpdate: 
     
 
@@ -1331,9 +1331,17 @@ Move_Piece2 PROC
     ;if moving the king
     mov ch,px2
     mov cl,py2
+
+    mov al,'B'
+    cmp Player, al
+    jne Black_King2
+    mov W_King_X,ch
+    mov W_King_Y,cl
+    jmp SkipKingUpdate2
+
+    Black_King2:
     mov B_King_X,ch
     mov B_King_Y,cl
-
 
     SkipKingUpdate2: 
     mov ch,px2
@@ -2766,82 +2774,82 @@ Is_Check ENDP
 
 ;Checks if a king is in check and prints a notification fo the players
 UpdateCheck PROC
-    ; pusha
-    ;            mov dl, 13
-    ;         mov ah,2       
-    ;         int 21h
+    pusha
+            mov dl, 13
+            mov ah,2       
+            int 21h
 
-    ;         mov ch, W_King_X
-    ;         mov cl, W_King_Y 
-    ;         call Is_Check
-    ;         cmp al,1
-    ;         jne NotCheck1
+            mov ch, W_King_X
+            mov cl, W_King_Y 
+            call Is_Check
+            cmp al,1
+            jne NotCheck1
 
-    ;         mov al, 1
-    ;         mov bh, 0
-    ;         mov bl, 1Eh
-    ;         mov cx, 5
-    ;         mov dl, 0
-    ;         mov dh, 23
-    ;         push ds
-    ;         pop es
-    ;         mov bp, offset IncheckMsg
-    ;         mov ah, 13h
-    ;         int 10h
+            mov al, 1
+            mov bh, 0
+            mov bl, 1Eh
+            mov cx, 5
+            mov dl, 0
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset IncheckMsg
+            mov ah, 13h
+            int 10h
 
-    ;         jmp MovePiece1
+            jmp MovePiece1
             
-    ;         NotCheck1:
-    ;            mov al, 1
-    ;         mov bh, 0
-    ;         mov bl, 1Eh
-    ;         mov cx, 5
-    ;         mov dl, 0
-    ;         mov dh, 23
-    ;         push ds
-    ;         pop es
-    ;         mov bp, offset EmptyMsg
-    ;         mov ah, 13h
-    ;         int 10h
+            NotCheck1:
+               mov al, 1
+            mov bh, 0
+            mov bl, 1Eh
+            mov cx, 5
+            mov dl, 0
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset EmptyMsg
+            mov ah, 13h
+            int 10h
 
-    ;         MovePiece1:
-    ;         ;===========Black king is in check??==================
-    ;         mov ch, B_King_X
-    ;         mov cl, B_King_Y 
-    ;         call Is_Check
+            MovePiece1:
+            ;===========Black king is in check??==================
+            mov ch, B_King_X
+            mov cl, B_King_Y 
+            call Is_Check
 
-    ;         cmp al,1
-    ;         jne NotCheck3
+            cmp al,1
+            jne NotCheck3
 
-    ;         mov al, 1
-    ;         mov bh, 0
-    ;         mov bl, 4fh
-    ;         mov cx, 5
-    ;         mov dl, 73
-    ;         mov dh, 23
-    ;         push ds
-    ;         pop es
-    ;         mov bp, offset IncheckMsg
-    ;         mov ah, 13h
-    ;         int 10h
+            mov al, 1
+            mov bh, 0
+            mov bl, 4fh
+            mov cx, 5
+            mov dl, 73
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset IncheckMsg
+            mov ah, 13h
+            int 10h
                  
-    ;         POPA
-    ;         ret
+            POPA
+            ret
 
-    ;         NotCheck3:
-    ;         mov al, 1
-    ;         mov bh, 0
-    ;         mov bl, 4fh
-    ;         mov cx, 5
-    ;         mov dl, 73
-    ;         mov dh, 23
-    ;         push ds
-    ;         pop es
-    ;         mov bp, offset EmptyMsg
-    ;         mov ah, 13h
-    ;         int 10h  
+            NotCheck3:
+            mov al, 1
+            mov bh, 0
+            mov bl, 4fh
+            mov cx, 5
+            mov dl, 73
+            mov dh, 23
+            push ds
+            pop es
+            mov bp, offset EmptyMsg
+            mov ah, 13h
+            int 10h  
 
-    ; popa
+    popa
         
     ret
 UpdateCheck ENDP
@@ -3120,6 +3128,7 @@ Animate PROC
         cmp cl, [bx+3]
         jne LKMID
         
+        ; 7ot el symbol bta3 el piece fl chessboard array at el endpos lama twsl
         call to_idx
         mov dl,[bx+5]
         mov dh,[bx+6]
@@ -3166,6 +3175,16 @@ pusha
     ; mov ch,hx2
     ; mov cl,hy2
     ; call GetValidMoves
+    
+    mov ch, px2
+    mov cl, py2
+    cmp hx,ch
+    jne G4
+    cmp hy,cl
+    jne G4
+    DeselectPlayer1
+    G4:
+    ; call ClearValidLists
 
     call ClearValidLists
     mov ch,hx
