@@ -75,6 +75,17 @@ Main PROC
     
     lea bx, name1
     call GetNameScreen
+
+GetPlayer2Name:
+    mov al,'$'
+    lea di, name2
+    GPN:
+        cmp [di], al
+        je GPN1
+        mov [di], al
+        jmp GPN
+    GPN1:
+
     call MainMenuScreen
     
     MOV AH,2
@@ -107,9 +118,11 @@ Main PROC
         GetInput:
             call ReceiveByte
             cmp RMsg, 'G' ;recieved the letter 'G' means that the other player is sending a game invite
-            ;mov al, RMsg
-            ;call PrintNumber
             je SetInvitation
+            
+            cmp RMsg, 'B' ;recieved the letter 'B' means that the other player has left the program. B:bye
+            je GetPlayer2Name
+
 
 
     
@@ -203,6 +216,10 @@ Main PROC
 
     
     EndLabel:
+    mov SMsg, 'B'
+    lea di,SMsg
+    call SendByte
+
     ;clears screen
     mov ax, 3
     int 10h
@@ -446,15 +463,24 @@ ExchangeNames PROC
     je SendName
     
     ; jmp SendName
+    
 
-
+    ; push di
+    ;     mov SMsg, 'N'
+    ;     lea di, SMsg
+    ;     call SendByte
+    ; pop di
     ReceiveName:
+    ; call ReceiveByte
+    ; cmp RMsg, '#'
+    ; je ReceiveName
+
     lea si, name2
     ; lea di, RMsg
     mov al,[di]
     mov [si],al
     inc si
-     push di
+    push di
             mov SMsg, 'N'
             lea di, SMsg
             call SendByte
@@ -488,9 +514,19 @@ ExchangeNames PROC
 
 
     SendName:
+        
+    mov bl, 9
+    ;     C1:
+    ;         mov SMsg, '#'
+    ;         lea di,SMsg
+    ;         call SendByte
+    ;         lea di,Rmsg
+    ;         call ReceiveByte
+    ;         cmp [di], bl
+    ;         je C1
+
     lea di, name1
     mov al, '$'
-    mov bl, 9
     SendName2:
 
         cmp [di],al
