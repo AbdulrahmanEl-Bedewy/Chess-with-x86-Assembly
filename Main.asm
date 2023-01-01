@@ -31,12 +31,14 @@ Public name2
     StartGameMsgMulti db 'To start the game press F2','$';26
     CloseMsg db 'To end the program press Esc','$' ;28
     ; CloseMsg db 'To end the program press ESC','$' ;28
-    InvitMsg db 'You are invited to a game to accept press f3 / decline B.S.','$' ;43
+    InvitMsg db 'You are invited to a game to accept press f2','$' ;43
+    InvitChatMsg db 'You are invited to a chat to accept press f1','$' ;43
     InvitMsgClear db '                                                           ','$' ;43
     Waiting_For_Msg db 'Waiting for player 2','$' ;19
     numB db 0     
     numAns db 0
-    Invited db 0 ;0 default 1: i was sent and invite 2: i sent and invite 
+    Invited_To_Game db 0 ;0 default 1: i was sent and invite 2: i sent and invite 
+    Invited_To_Chat db 0 ;0 default 1: i was sent and invite 2: i sent and invite 
     SentInvite db 0
 
 
@@ -117,12 +119,14 @@ GetPlayer2Name:
         lea di,RMsg
         GetInput:
             call ReceiveByte
-            cmp RMsg, 'G' ;recieved the letter 'G' means that the other player is sending a game invite
-            je SetInvitation
+            cmp RMsg, 'G' ;recieved the letter 'G' means that the other player is sending a game invite G:game
+            je SetInvitationGame
             
             cmp RMsg, 'B' ;recieved the letter 'B' means that the other player has left the program. B:bye
             je GetPlayer2Name
 
+            cmp RMsg, 'C' ;recieved the letter 'B' means that the other player is sending a chat invite. C:chat
+            je SetInvitationChat
 
 
     
@@ -134,13 +138,13 @@ GetPlayer2Name:
             
 
             cmp ah, 3Bh
-            je Chat    
+            je SendInviteChatMid    
             
             ; cmp ah, 3Ch
             ; je GameMode1    
             
             cmp ah, 3Ch ;3Dh
-            je SendInvite   
+            je SendInviteGame   
 
             cmp ah, 01h
             je EndLabelMid   
@@ -148,15 +152,16 @@ GetPlayer2Name:
             jmp GetInput
 
     EndLabelMid:jmp EndLabel
+    SendInviteChatMid:jmp SendInviteChat
 
-    SetInvitation:
-        cmp Invited,2
+    SetInvitationGame:
+        cmp Invited_To_Game,2
         jne SI_1
         mov Player , 'W'
         jmp GameMode2
 
         SI_1:
-        mov Invited, 1
+        mov Invited_To_Game, 1
         MOV AH,2
         MOV BH,00
         MOV DL,0
@@ -168,25 +173,63 @@ GetPlayer2Name:
         int 21h
         jmp GetInput
 
-    SendInvite:
+    SendInviteGame:
         mov SMsg, 'G'
         lea di,SMsg
         call SendByte
 
-        cmp Invited, 1
+        cmp Invited_To_Game, 1
         jne SI_2
         mov Player , 'B'
         jmp GameMode2
 
         SI_2:
         lea di,RMsg
-        mov Invited, 2
+        mov Invited_To_Game, 2
+        jmp GetInput
+
+    
+    SetInvitationChat:
+    ;see if i already sent an invite before if so then this msg is a respond to the invite and we should join the chat
+        cmp Invited_To_Chat,2
+        jne SI_3
+        jmp Chat
+    ;if not then im being invited now, display invite and set flag
+        SI_3:
+        mov Invited_To_Chat, 1
+        MOV AH,2
+        MOV BH,00
+        MOV DL,0
+        MOV DH,20
+        INT 10H
+        ; print 'hello ' + name
+        mov ah, 9
+        mov dx, offset InvitChatMsg
+        int 21h
+        jmp GetInput
+
+    SendInviteChat:
+    ; send notification to other player
+        mov SMsg, 'C'
+        lea di,SMsg
+        call SendByte
+    ;check if i was previously invited then now im responding to the invite and should join chat
+        cmp Invited_To_Chat, 1
+        jne SI_4
+        jmp Chat
+
+    ;if i wasn't invited then update flag that i sent an invite
+        SI_4:
+        lea di,RMsg
+        mov Invited_To_Chat, 2
         jmp GetInput
         
 
 
     Chat: 
         ;To Be Implemented 
+        mov Invited_To_Game, 0
+        mov Invited_To_Chat, 0
         call ChatScreen
         jmp MainMenu
              
@@ -207,9 +250,11 @@ GetPlayer2Name:
 
     
     GameMode2: ; 2 players on different devices
+        mov Invited_To_Game, 0
+        mov Invited_To_Chat, 0
         mov Mode, 1
         call GameScreenMulti
-        mov Invited , 0
+        ;mov Invited_To_Game , 0
         jmp MainMenu
     
     
