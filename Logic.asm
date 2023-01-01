@@ -3261,6 +3261,8 @@ pusha
     ; mov cl,hy
     cmp hx,0
     je Skipat
+    mov ch,hx
+    mov cl,hy
     call GetValidMoves
 
     call DrawPossibleMoves
