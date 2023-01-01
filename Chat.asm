@@ -276,7 +276,7 @@ SCROLLInputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,70h       ; normal video attribute         
+	mov bh,80h       ; normal video attribute         
 	mov ch,0       ; upper left Y
 	mov cl,0        ; upper left X
 	mov dh,24    ; lower right Y
@@ -297,7 +297,7 @@ SCROLLOutputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,90h       ; normal video attribute         
+	mov bh,80h       ; normal video attribute         
 	mov ch,0       ; upper left Y
 	mov cl,39        ; upper left X
 	mov dh,24    ; lower right Y
@@ -313,17 +313,17 @@ SCROLLOutputScreen proc
 	ret
 SCROLLOutputScreen endp
 
-	newILine proc
+newILine proc
 	mov IX,0
 	inc IY
 	ret
-	newILine endp
+newILine endp
 
-	newOLine proc
+newOLine proc
 	mov OX,39
 	inc OY
 	ret
-	newOLine endp
+newOLine endp
 
 end 
 
