@@ -207,6 +207,8 @@ WRITEINPUT ENDP
 WRITEOUTPUT PROC
 	cmp al,8
 	jne notback2
+	cmp ox,39
+	je fo
 	mov ah,2
 	mov dl,8
 	int 21h
@@ -214,6 +216,7 @@ WRITEOUTPUT PROC
 	int 21h
 	mov dl,8
 	int 21h
+	fo:
 	cmp ox,40
 	jbe ohno1
 	dec OX
@@ -316,7 +319,7 @@ inializeScreen proc
 
 	mov al,0h     ; function 6
 	mov ah,6h
-   mov bh, 88h       ; normal video attribute         
+   mov bh, 8Fh       ; normal video attribute         
    mov ch,0       ; upper left Y
    mov cl,39        ; upper left X
    mov dh,24    ; lower right Y
@@ -325,7 +328,7 @@ inializeScreen proc
 
    mov al,0h     ; function 6
 	mov ah,6h
-   mov bh,88h       ; normal video attribute         
+   mov bh,8Fh       ; normal video attribute         
    mov ch,0       ; upper left Y
    mov cl,0        ; upper left X
    mov dh,24    ; lower right Y
@@ -344,6 +347,10 @@ inializeScreen proc
 	mov dh,0
 	int 10h
 
+	mov ax,1003h
+	mov bx,0
+	int 10h
+
 	ret
 inializeScreen endp
 
@@ -352,7 +359,7 @@ SCROLLInputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,88h       ; normal video attribute         
+	mov bh,8Fh       ; normal video attribute         
 	mov ch,0       ; upper left Y
 	mov cl,0        ; upper left X
 	mov dh,24    ; lower right Y
@@ -373,7 +380,7 @@ SCROLLOutputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,88h       ; normal video attribute         
+	mov bh,8Fh       ; normal video attribute         
 	mov ch,0       ; upper left Y
 	mov cl,39        ; upper left X
 	mov dh,24    ; lower right Y
