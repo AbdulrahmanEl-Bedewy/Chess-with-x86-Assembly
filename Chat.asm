@@ -17,6 +17,8 @@ ChatScreen proc far
 	
 	call inializeScreen
 	;CALL intializePort
+
+	
 	
 	;CODE
 	CHECKKEYPRESSED:
@@ -24,12 +26,29 @@ ChatScreen proc far
 	;CHECK IF THERE IS A KEY PRESSESD SEND TO THE OTHER USER
 	MOV AH,01h
 	INT 16H
-	JZ CHECKKEYSENT     ;KEY recieved
+	JZ CHECKKEYSENT     ;KEY recieved 
+	oout:
 	MOV AH,00
 	INT 16H  
 
 	CMP AL,1BH
-	JE EXIT
+	JE EXIT       
+	
+    cmp al,' '
+    je vvv
+    cmp al,0dh
+    je vvv
+    cmp al, 'z'
+    ja oout
+    cmp al, 'A'
+    jb oout
+    cmp al, 'Z'
+    jb oout
+    cmp al, 'a'
+    jb oout
+    
+    vvv:  
+	
 	call WRITEINPUT
 	CALL SENDKEY
 	
@@ -233,7 +252,13 @@ inializeScreen proc
    mov dh,24    ; lower right Y
    mov dl,37      ; lower right X 
    int 10h  
-
+   
+   	
+	mov ah,2      ;to move the cursor the the values of(dl,dh) the top left
+	mov bh,0
+	mov dl,0
+	mov dh,0
+	int 10h
 
 	ret
 inializeScreen endp
