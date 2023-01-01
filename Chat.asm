@@ -115,10 +115,7 @@ WRITEINPUT PROC
 	cmp al,8
 	jne notback
 	mov ah,2
-	mov dl,' '
-	int 21h
 	mov dl,8
-	int 21h
 	int 21h
 	mov dl,' '
 	int 21h
@@ -186,12 +183,14 @@ WRITEINPUT PROC
 	int 10h
 
 	
-
-	MOV AH,09H
-	MOV BH, 0      ; Set page number
-	MOV BL, 0fh      ; Color (blue)
-	MOV CX, 1      ; Character count
-	INT 10h
+	mov ah,2
+	mov dl,al
+	int 21h
+	; MOV AH,09H
+	; MOV BH, 0      ; Set page number
+	; MOV BL, 0fh      ; Color (blue)
+	; MOV CX, 1      ; Character count
+	; INT 10h
 
 	INC IX
 	RET
@@ -204,22 +203,19 @@ WRITEINPUT PROC
 	RET
 WRITEINPUT ENDP
 
-
+; ||aa  
 WRITEOUTPUT PROC
 	cmp al,8
 	jne notback2
 	mov ah,2
+	mov dl,8
+	int 21h
 	mov dl,' '
 	int 21h
 	mov dl,8
 	int 21h
-	int 21h
-	mov dl,' '
-	int 21h
-	mov dl,8
-	int 21h
-	cmp ox,39
-	je ohno1
+	cmp ox,40
+	jbe ohno1
 	dec OX
 	mov AH,2
 	mov DL,oX
@@ -274,12 +270,14 @@ WRITEOUTPUT PROC
 	MOV DH,oy
 	int 10h
 
-
-	MOV AH,09H
-	MOV BH, 0      ; Set page number
-	MOV BL, 0fh      ; Color (red)
-	MOV CX, 1      ; Character count
-	INT 10h
+	mov ah,2
+	mov dl,al
+	int 21h
+	; MOV AH,09H
+	; MOV BH, 0      ; Set page number
+	; MOV BL, 0fh      ; Color (red)
+	; MOV CX, 1      ; Character count
+	; INT 10h
 
 	INC oX
 	RET
