@@ -805,7 +805,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
                 mov bl,[di+1]
                 mov [si],bh
                 mov [si+1],bl
-
+            call DrawDeadP
         pusha
          ; send the move i just made to the other player
             lea di,SMsg
@@ -3265,8 +3265,8 @@ pusha
 
     call DrawPossibleMoves
     call DrawPossibleAttacks
-    ; call DrawDeadP
     Skipat:
+;    call DrawDeadP
     
 
 popa
@@ -3439,7 +3439,7 @@ ReceiveMsg PROC
         mov bl,[di+1]
         mov [si],bh
         mov [si+1],bl
-
+    call DrawDeadP
 
     Skip_Appending_dp:
     call Move_Piece2
