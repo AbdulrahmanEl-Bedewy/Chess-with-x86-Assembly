@@ -33,6 +33,7 @@ Public name2
     ; CloseMsg db 'To end the program press ESC','$' ;28
     InvitMsg db 'You are invited to a game to accept press f3 / decline B.S.','$' ;43
     InvitMsgClear db '                                                           ','$' ;43
+    Waiting_For_Msg db 'Waiting for player 2','$' ;19
     numB db 0     
     numAns db 0
     Invited db 0 ;0 default 1: i was sent and invite 2: i sent and invite 
@@ -74,11 +75,34 @@ Main PROC
     
     lea bx, name1
     call GetNameScreen
+    call MainMenuScreen
+    
+    MOV AH,2
+    MOV BH,00
+    MOV DL,0
+    MOV DH,22
+    INT 10H
+    ; print 'hello ' + name
+    mov ah, 9
+    mov dx, offset Waiting_For_Msg
+    int 21h
 
     call ExchangeNames
+
+    MOV AH,2
+    MOV BH,00
+    MOV DL,0
+    MOV DH,22
+    INT 10H
+    ; print 'hello ' + name
+    mov ah, 9
+    mov dx, offset InvitMsgClear
+    int 21h
+
         
     MainMenu:
         call MainMenuScreen
+
         lea di,RMsg
         GetInput:
             call ReceiveByte
@@ -253,6 +277,8 @@ MainMenuScreen PROC
         mov dl, 196
         int 21h         
     loop PrintHLine
+
+
    
 
 
