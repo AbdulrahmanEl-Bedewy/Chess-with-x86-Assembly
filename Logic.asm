@@ -433,8 +433,14 @@ GameScreenMulti PROC
         mov ah, 13h
         int 10h
 
-        MOV AH , 0
-        INT 16h
+        AwaitESC2:
+        mov ah,1
+        int 16h   
+        jz AwaitESC2
+        mov ah,0
+        int 16h  
+        cmp ah,1
+        jne AwaitESC2
         ret
         
         I_Win:
@@ -452,9 +458,18 @@ GameScreenMulti PROC
         ;mov bp, offset msg
         mov ah, 13h
         int 10h
-            
-        MOV AH , 0
-        INT 16h
+        
+
+
+        AwaitESC:
+        call Animate
+        mov ah,1
+        int 16h   
+        jz AwaitESC
+        mov ah,0
+        int 16h  
+        cmp ah,1
+        jne AwaitESC
         ret
     
         GameLP1Multi:
