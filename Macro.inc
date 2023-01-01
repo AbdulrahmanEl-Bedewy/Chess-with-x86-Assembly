@@ -24,7 +24,7 @@ DrawSq MACRO x, y  ; draws 1 square of solid color at specified coordinates
                    ; x & y are row and column. not in terms of px
     mov bl,x
     mov al,y
-    mov dl, 68h;3h
+    mov dl, CursorColor;68h;3h
     call DrawSquare
 ENDM
 

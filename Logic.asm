@@ -13,6 +13,9 @@ EXTRN DrawRightPiece:FAR
 
 EXTRN name1:byte
 EXTRN name2:byte
+EXTRN CursorColor:byte
+EXTRN MovesColor:byte
+EXTRN AttackColor:byte
 ;EXTRN Moves_bishop:FAR
 Public to_idx
 ; Public GameScreenLocal
@@ -99,12 +102,13 @@ timer dw 0
 CoolDownPieces dw 64 dup(0), '$'
 ;AnimateArray db 10 dup('$$$$$$$$');00cur pos 00;end pos 0;timer 00;piece symbol
 AnimateArray db 10 dup('$$$$$$$');00cur pos 00;end pos 0;timer 00;el symbool
-Winner db 0
+Winner db 0 ;0 no winner 1 i won 2 i lose 3 other player left
 
-; Winner_MessageB db " Black Wins ";'Black Wins'
-; Winner_MessageW db " White Wins ";'White Wins'
-Winner_MessageW db " You Win ";'Black Wins' 9
-Winner_MessageB db " You Lose ";'White Wins' 10
+; You_Lose_Message db " Black Wins ";'Black Wins'
+; You_Win_Message db " White Wins ";'White Wins'
+You_Win_Message db " You Win ";'Black Wins' 9
+You_Lose_Message db " You Lose ";'White Wins' 10
+Player_Left_Message db " Your opponent has left the game ";'White Wins' 33
 
 BTag db "Black:"
 WTag db "White:"
@@ -241,10 +245,10 @@ Mode db 0 ; dh el by7aded whether im player1 or player 2
 ;         ; int 10h
 ;         cmp winner,1
 ;         je White_Wins
-;         lea bp, Winner_MessageB
+;         lea bp, You_Lose_Message
 ;         jmp DispMsg
 ;         White_Wins:
-;         lea bp, Winner_MessageW
+;         lea bp, You_Win_Message
 ;         DispMsg:
 ;          mov al, 1
 ;         mov bh, 0
@@ -378,6 +382,16 @@ GameScreenMulti PROC
             jne CD_LpMulti
 
 
+       
+        cmp winner,1
+        je I_Win
+
+        cmp winner,2
+        je I_Lose
+
+        cmp winner, 3
+        je Player_Left
+
         mov ch,px
         mov cl,py
 
@@ -396,18 +410,32 @@ GameScreenMulti PROC
         call far ptr HandleInput
         ; call far ptr HandleInput2
 
-        cmp winner,0
-        je GameLP1Multi
-        ; Press any key to exit
-        ; mov ah,2
-        ; mov dx,1407h
-        ; int 10h
-        cmp winner,1
-        je White_WinsMulti
-        lea bp, Winner_MessageB
+        jmp GameLPMulti
+        
+        I_Lose:
+        lea bp, You_Lose_Message
         jmp DispMsgMulti
-        White_WinsMulti:
-        lea bp, Winner_MessageW
+        
+        Player_Left:
+        lea bp, Player_Left_Message
+        mov al, 1
+        mov bh, 0
+        mov bl, 4
+        mov cx, 33
+        mov dl, 5
+        mov dh, 12
+        push ds
+        pop es
+        mov ah, 13h
+        int 10h
+
+        MOV AH , 0
+        INT 16h
+        ret
+        
+        I_Win:
+        lea bp, You_Win_Message
+
         DispMsgMulti:
          mov al, 1
         mov bh, 0
@@ -424,10 +452,14 @@ GameScreenMulti PROC
         MOV AH , 0
         INT 16h
         ret
+    
         GameLP1Multi:
         jmp GameLPMulti
         
     endingMulti:
+    mov SMsg, 'E' ;  e for end
+    lea di,SMsg
+    call far ptr SendByte
     ret
 GameScreenMulti ENDP
 
@@ -472,8 +504,27 @@ InitGame PROC Far
          lea si, CoolDownPieces
          ;mov ax, [si + 112]
 
+        cmp Player, 'B'
+        je IAmBlack
+        lea si, name1
+        lea di, name2
         mov px , 1
         mov py , 8
+        mov CursorColor, 68h
+        mov MovesColor, 36h
+        mov AttackColor, 4h
+        jmp I_G_1
+
+        IAmBlack: ;name1 ytktb 3nd el black
+        lea si, name2
+        lea di, name1
+        mov px , 1
+        mov py , 1
+        mov CursorColor, 2Ah
+        mov MovesColor, 2bh
+        mov AttackColor, 6Bh
+
+        I_G_1:
         mov px2, 1
         mov py2, 1
         mov hx , 0
@@ -497,7 +548,9 @@ InitGame PROC Far
         ; MOV ch,px2
         ; MOV cl,py2
         ; call RedrawPiece
+        
 
+        PrintNames:
          mov al, 1
         mov bh, 0
         mov bl, 1Eh
@@ -515,8 +568,9 @@ InitGame PROC Far
         mov bh, 0
         mov ah, 2
         int 10h
+;white name
 
-        mov dx, offset name1
+        mov dx, si
 		mov ah, 9
 		int 21h
 
@@ -537,8 +591,8 @@ InitGame PROC Far
         mov bh, 0
         mov ah, 2
         int 10h
-        
-        mov dx, offset name2
+     ;black name   
+        mov dx, di
 		mov ah, 9
 		int 21h
 
@@ -3235,7 +3289,7 @@ popa
 Animate ENDP
 
 
-;Recieves 1 byte and puts it in [di]
+;Recieves 1 byte and puts it in di
 ;9 -> didnt recieve 7aga 
 ReceiveByte PROC far
     pusha
@@ -3273,36 +3327,43 @@ ReceiveMsg PROC
     ret
 
     Recieve:
+    cmp RMsg, 'E'
+    jne NotEnd
+    mov winner,3
+    popa 
+    ret
+
+    NotEnd:
     mov ah, 9
 
-    mov al, [di]
+    mov al, RMsg
     mov hx2, al
    ; call PrintNumber
 
-    inc di
+    ;inc di
     J1:call ReceiveByte
-    cmp [di], ah
+    cmp RMsg, ah
     je J1 
 
-    mov al, [di]
+    mov al, RMsg
     ;call PrintNumber
     mov hy2, al
 
-    inc di
+    ;inc di
     J2:call ReceiveByte
-    cmp [di], ah
+    cmp RMsg, ah
     je J2
 
-    mov al, [di]
+    mov al, RMsg
     ;call PrintNumber
     mov px2, al
 
-    inc di
+    ;inc di
     J3:call ReceiveByte
-    cmp [di], ah
+    cmp RMsg, ah
     je J3
     
-    mov al, [di]
+    mov al, RMsg
     ;call PrintNumber
     mov py2, al
 
@@ -3355,12 +3416,12 @@ ReceiveMsg PROC
     Skip_Appending_dp:
     call Move_Piece2
 
-    lea di,RMsg
-    mov dl, 9
-    mov [di], dl
-    mov [di+1], dl
-    mov [di+2], dl
-    mov [di+3], dl
+    ;lea di,RMsg
+    mov RMsg, 9
+    ; mov [di], dl
+    ; mov [di+1], dl
+    ; mov [di+2], dl
+    ; mov [di+3], dl
 
     popa
     ret

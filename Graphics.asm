@@ -11,6 +11,9 @@ Public DrawPossibleAttacks
 Public DrawDeadP
 Public DrawCooldown
 Public DrawRightPiece
+Public CursorColor
+Public MovesColor
+Public AttackColor
 
 
 EXTRN to_idx:FAR
@@ -78,6 +81,10 @@ cooldown5Data DB 20*20 dup(0)
 cooldown6Data DB 20*20 dup(0)
 cooldown7Data DB 20*20 dup(0)
 cooldown8Data DB 20*20 dup(0)
+
+CursorColor db ?
+MovesColor db ?
+AttackColor db ?
 
 
 .Code
@@ -620,25 +627,25 @@ DrawPossibleMoves PROC FAR
         je DPM_end
         mov bl,[di]
         mov al,[di+1]
-        mov dl, 36h ;66h
+        mov dl, MovesColor;36h ;66h
         call DrawSquare
         add di, 2
         jmp DPM_Draw
 
     DPM_end:
-     lea di, ValidMoves2
-    mov cl, '$'
-    DPM_Draw2:
-        cmp [di], cl
-        je DPM_end2
-        mov bl,[di]
-        mov al,[di+1]
-        mov dl, 2bh ;8Ch
-        call DrawSquare
-        add di, 2
-        jmp DPM_Draw2
+    ;  lea di, ValidMoves2
+    ; mov cl, '$'
+    ; DPM_Draw2:
+    ;     cmp [di], cl
+    ;     je DPM_end2
+    ;     mov bl,[di]
+    ;     mov al,[di+1]
+    ;     mov dl, 2bh ;8Ch
+    ;     call DrawSquare
+    ;     add di, 2
+    ;     jmp DPM_Draw2
 
-    DPM_end2:
+    ; DPM_end2:
     popa
     ret
 DrawPossibleMoves ENDP
@@ -654,7 +661,7 @@ DrawPossibleAttacks PROC FAR
         ; mov al, 24h
         mov bl,[di]
         mov al,[di+1]
-        mov dl, 4h
+        mov dl, AttackColor ;4h
         call DrawSquare
         mov ch,[di]
         mov cl,[di+1]
@@ -663,24 +670,24 @@ DrawPossibleAttacks PROC FAR
         jmp DPA_Draw
 
     DPA_end:
-    lea di, ValidAttacks2
-    mov ah, '$'
-    DPA_Draw2:
-        cmp [di], ah
-        je DPA_end2
-        ; mov bl,24h
-        ; mov al, 24h
-        mov bl,[di]
-        mov al,[di+1]
-        mov dl, 6Bh
-        call DrawSquare
-        mov ch,[di]
-        mov cl,[di+1]
-        call RedrawPiece
-        add di, 2
-        jmp DPA_Draw2
+    ; lea di, ValidAttacks2
+    ; mov ah, '$'
+    ; DPA_Draw2:
+    ;     cmp [di], ah
+    ;     je DPA_end2
+    ;     ; mov bl,24h
+    ;     ; mov al, 24h
+    ;     mov bl,[di]
+    ;     mov al,[di+1]
+    ;     mov dl, 6Bh
+    ;     call DrawSquare
+    ;     mov ch,[di]
+    ;     mov cl,[di+1]
+    ;     call RedrawPiece
+    ;     add di, 2
+    ;     jmp DPA_Draw2
 
-    DPA_end2:
+    ; DPA_end2:
     popa
     ret
 DrawPossibleAttacks ENDP
