@@ -110,6 +110,17 @@ intializePort proc
 intializePort endp
 
 WRITEINPUT PROC
+	cmp al,8
+	jne notback
+	mov ah,2
+	mov dl,8
+	int 21h
+	mov dl,' '
+	int 21h
+	mov dl,8
+	int 21h
+	ret
+	notback:
 	cmp al,13d        ;to check if the value entered is an enter key
 	jne cont1
 	cmp Iy,24d
@@ -166,6 +177,16 @@ WRITEINPUT ENDP
 
 
 WRITEOUTPUT PROC
+	cmp al,8
+	jne notback
+	mov ah,2
+	mov dl,8
+	int 21h
+	mov dl,' '
+	int 21h
+	mov dl,8
+	int 21h
+	ret
 	cmp al,13d
 	jne cont2
 	cmp oy,24d
@@ -240,7 +261,7 @@ inializeScreen proc
 
 	mov al,0h     ; function 6
 	mov ah,6h
-   mov bh, 90h       ; normal video attribute         
+   mov bh, 88h       ; normal video attribute         
    mov ch,0       ; upper left Y
    mov cl,39        ; upper left X
    mov dh,24    ; lower right Y
@@ -249,7 +270,7 @@ inializeScreen proc
 
    mov al,0h     ; function 6
 	mov ah,6h
-   mov bh,70h       ; normal video attribute         
+   mov bh,88h       ; normal video attribute         
    mov ch,0       ; upper left Y
    mov cl,0        ; upper left X
    mov dh,24    ; lower right Y
@@ -276,7 +297,7 @@ SCROLLInputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,80h       ; normal video attribute         
+	mov bh,88h       ; normal video attribute         
 	mov ch,0       ; upper left Y
 	mov cl,0        ; upper left X
 	mov dh,24    ; lower right Y
@@ -297,7 +318,7 @@ SCROLLOutputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,80h       ; normal video attribute         
+	mov bh,88h       ; normal video attribute         
 	mov ch,0       ; upper left Y
 	mov cl,39        ; upper left X
 	mov dh,24    ; lower right Y
