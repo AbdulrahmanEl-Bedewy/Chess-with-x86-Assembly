@@ -36,6 +36,8 @@ ChatScreen proc far
 	
     cmp al,' '         ;if space or enter it is ok
     je vvv
+	cmp al,8
+	je vvv
     cmp al,0dh
     je vvv
     
@@ -113,12 +115,39 @@ WRITEINPUT PROC
 	cmp al,8
 	jne notback
 	mov ah,2
+	mov dl,' '
+	int 21h
 	mov dl,8
+	int 21h
 	int 21h
 	mov dl,' '
 	int 21h
 	mov dl,8
 	int 21h
+	cmp ix,0
+	je ohno3
+	dec iX
+	mov AH,2
+	mov DL,iX
+	MOV DH,iY
+	int 10h
+	ret
+	ohno3:
+	mov ix,37
+	cmp iy,0
+	jne ohno4
+	mov ix,0
+	mov AH,2
+	mov DL,iX
+	MOV DH,iY
+	int 10h
+	ret
+	ohno4:
+	dec iy
+	mov AH,2
+	mov DL,iX
+	MOV DH,iY
+	int 10h
 	ret
 	notback:
 	cmp al,13d        ;to check if the value entered is an enter key
@@ -178,15 +207,43 @@ WRITEINPUT ENDP
 
 WRITEOUTPUT PROC
 	cmp al,8
-	jne notback
+	jne notback2
 	mov ah,2
+	mov dl,' '
+	int 21h
 	mov dl,8
+	int 21h
 	int 21h
 	mov dl,' '
 	int 21h
 	mov dl,8
 	int 21h
+	cmp ox,39
+	je ohno1
+	dec OX
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
 	ret
+	ohno1:
+	mov ox,79
+	cmp oy,0
+	jne ohno2
+	mov ox,39
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
+	ret
+	ohno2:
+	dec oy
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
+	ret
+	notback2:
 	cmp al,13d
 	jne cont2
 	cmp oy,24d
