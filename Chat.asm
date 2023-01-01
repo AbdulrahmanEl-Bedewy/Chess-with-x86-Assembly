@@ -34,18 +34,21 @@ ChatScreen proc far
 	CMP AL,1BH
 	JE EXIT       
 	
-    cmp al,' '
+    cmp al,' '         ;if space or enter it is ok
     je vvv
     cmp al,0dh
     je vvv
-    cmp al, 'z'
+    
+   
+     
+    cmp al, 'z'      ;out of range for letters
     ja oout
-    cmp al, 'A'
+    cmp al, 21h
     jb oout
-    cmp al, 'Z'
-    jb oout
-    cmp al, 'a'
-    jb oout
+   ; cmp al, 'Z'
+;    jb oout
+;    cmp al, 'a'
+;    jb oout
     
     vvv:  
 	
