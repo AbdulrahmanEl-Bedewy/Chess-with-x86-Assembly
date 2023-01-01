@@ -3069,22 +3069,22 @@ DrawingChecks PROC
 
         cmp al, 1
         je Drawattack_1
-        
-        lea si,ValidAttacks2
-        call List_Contains
+        jmp GS_Skip1
+        ; lea si,ValidAttacks2
+        ; call List_Contains
 
-        cmp al, 0
-        je GS_Skip1
-        mov bl,ch
-        mov al,cl
-        mov dl, 6Bh
-        call DrawSquare
-        popa
-        ret
+        ; cmp al, 0
+        ; je GS_Skip1
+        ; mov bl,ch
+        ; mov al,cl
+        ; mov dl, 6Bh
+        ; call DrawSquare
+        ; popa
+        ; ret
         Drawattack_1:
         mov bl,ch
         mov al,cl
-        mov dl, 4h
+        mov dl, AttackColor
         call DrawSquare
 
     GS_Skip1:
