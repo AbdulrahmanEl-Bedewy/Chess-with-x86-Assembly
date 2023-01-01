@@ -199,25 +199,43 @@ RET
 SENDKEY ENDP
 
 inializeScreen proc
-mov ah,0
-mov al,3h          ;to open text mode
-int 10h
-
-mov ah,2
-mov dl,38
-mov dh,0
-mov cx,25         ;the length of the screen
-lp:
-	mov ah,2      ;to move the cursor the the values of(dl,dh)
+	mov ah,0
+	mov al,3h          ;to open text mode
 	int 10h
-	mov dl,186   ;to print H to separate the screen at the middle
-	int 21h
+
+	mov ah,2
 	mov dl,38
-	inc dh
-LOOP lp
+	mov dh,0
+	mov cx,25         ;the length of the screen
+	lp:
+		mov ah,2      ;to move the cursor the the values of(dl,dh)
+		int 10h
+		mov dl,186   ;to print H to separate the screen at the middle
+		int 21h
+		mov dl,38
+		inc dh
+	LOOP lp
+
+	mov al,0h     ; function 6
+	mov ah,6h
+   mov bh, 90h       ; normal video attribute         
+   mov ch,0       ; upper left Y
+   mov cl,39        ; upper left X
+   mov dh,24    ; lower right Y
+   mov dl,79      ; lower right X 
+   int 10h  
+
+   mov al,0h     ; function 6
+	mov ah,6h
+   mov bh,70h       ; normal video attribute         
+   mov ch,0       ; upper left Y
+   mov cl,0        ; upper left X
+   mov dh,24    ; lower right Y
+   mov dl,37      ; lower right X 
+   int 10h  
 
 
-ret
+	ret
 inializeScreen endp
 
 
@@ -225,7 +243,7 @@ SCROLLInputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-   mov bh,07h       ; normal video attribute         
+   mov bh,70h       ; normal video attribute         
    mov ch,0       ; upper left Y
    mov cl,0        ; upper left X
    mov dh,24    ; lower right Y
@@ -246,7 +264,7 @@ SCROLLOutputScreen proc
 pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-   mov bh,07h       ; normal video attribute         
+   mov bh,90h       ; normal video attribute         
    mov ch,0       ; upper left Y
    mov cl,39        ; upper left X
    mov dh,24    ; lower right Y
