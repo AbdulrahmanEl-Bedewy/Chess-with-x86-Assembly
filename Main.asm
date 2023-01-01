@@ -79,6 +79,8 @@ Main PROC
     call GetNameScreen
 
 GetPlayer2Name:
+    mov Invited_To_Game, 0
+    mov Invited_To_Chat, 0
     mov al,'$'
     lea di, name2
     GPN:

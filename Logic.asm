@@ -98,6 +98,9 @@ prevs db ?
 Prevtime dw ?
 frame db ?   
 timer dw 0 
+counter db 0
+seconds db 0
+minutes db 0 
 
 CoolDownPieces dw 64 dup(0), '$'
 ;AnimateArray db 10 dup('$$$$$$$$');00cur pos 00;end pos 0;timer 00;piece symbol
@@ -313,6 +316,7 @@ GameScreenMulti PROC
     ;MAIN GAME LOOP
     GameLPMulti:
         call far ptr GetFrameTime
+        call Clock
         call ReceiveMsg
         call Animate
         
@@ -538,6 +542,9 @@ InitGame PROC Far
         mov B_Check , 0
         mov W_Check , 0
         mov winner, 0
+        mov seconds,0
+        mov minutes,0
+        mov counter,0
 ; initialize the board and draws all pieces in place
         call InitBoard   
         DrawSq px, py
@@ -3482,5 +3489,43 @@ SendMsg PROC
     ret
 SendMsg ENDP
 
+Clock PROC ;frame/al time between last iteration in 1/100 of second
+    pusha
+    add counter,al
+    mov al,counter
+    cmp al,100
+    jae incrementsec
+    popa
+    ret
+    incrementsec:
+    inc seconds
+    sub counter,100d
 
+    cmp seconds,60
+    jae incrementminutes
+
+    jmp displayclock
+    incrementminutes:
+    inc minutes
+    mov seconds,0
+
+    displayclock:
+    ;display minutes:seconds  in 00:00 format
+    ;in top center 
+    mov dh,0
+    mov dl,18d
+    mov bh,0
+    mov ah,2
+    int 10h
+    mov al,minutes
+    call printNumber
+    mov ah,2
+    mov dl,':'
+    int 21h
+    mov al,seconds
+    call printNumber
+    
+    popa
+    ret
+Clock ENDP
 END ;MAIN
