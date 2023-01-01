@@ -260,7 +260,13 @@ inializeScreen proc
 	mov IY , 0D
 	mov IX , 0D
 	mov OX , 39D
-	mov OY , 0D
+	mov OY , 0D 
+	
+	mov ah,2
+	mov bh,0
+	mov dl,0
+	mov dh,0
+	int 10h
 
 	ret
 inializeScreen endp
