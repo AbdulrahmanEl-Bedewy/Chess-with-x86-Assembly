@@ -1330,7 +1330,7 @@ Move_Piece PROC
     MP_LP:
         cmp [bx], al
         je MP_Append
-        add bx,4
+        add bx,7
         jmp MP_LP    
     MP_Append:
     ; ;00cur pos 00;end pos 0;timer 00;piece symbol    
@@ -1428,7 +1428,7 @@ Move_Piece2 PROC
     MP_LP2:
         cmp [bx], al
         je MP_Append2
-        add bx,4
+        add bx,7
         jmp MP_LP2    
     MP_Append2:
     ; ;00cur pos 00;end pos 0;timer 00;piece symbol    
@@ -3237,24 +3237,36 @@ pusha
     ; mov cl,hy2
     ; call GetValidMoves
 
-    mov ch, px2
-    mov cl, py2
-    cmp hx,ch
-    jne G4
-    cmp hy,cl
-    jne G4
-    DeselectPlayer1
-    G4:
-    ; call ClearValidLists
+    ; mov ch, px2
+    ; mov cl, py2
+    ; cmp hx,ch
+    ; jne G4
+    ; cmp hy,cl
+    ; jne G4
+    ; DeselectPlayer1
+    ; G4:
+    ; ; call ClearValidLists
 
-    call ClearValidLists
-    mov ch,hx
-    mov cl,hy
+    ; call ClearValidLists
+    ; mov ch,hx
+    ; mov cl,hy
+    ; call GetValidMoves
+
+    ; call DrawPossibleMoves
+    ; call DrawPossibleAttacks
+    ; call DrawDeadP
+        call ClearValidLists
+
+    ; mov ch,hx
+    ; mov cl,hy
+    cmp hx,0
+    je Skipat
     call GetValidMoves
 
     call DrawPossibleMoves
     call DrawPossibleAttacks
-    call DrawDeadP
+    ; call DrawDeadP
+    Skipat:
     
 
 popa
@@ -3387,6 +3399,15 @@ ReceiveMsg PROC
 
     mov ch,px2
     mov cl,py2
+    cmp hx,ch
+    jne CheckKill
+
+    cmp hy,cl
+    jne CheckKill
+    mov hx,0
+    mov hy,0
+
+    CheckKill:
     call to_idx
     ; check if end pos had a piece
     mov dl, '0'
