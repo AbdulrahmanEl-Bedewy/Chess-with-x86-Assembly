@@ -125,6 +125,13 @@ SMsg db 4 dup(9)
 Player db 'W' ; dh el by7aded whether im player1 or player 2
 Mode db 0 ; dh el by7aded whether im player1 or player 2
 
+IX db 0
+IY db 13d
+
+OX db 30d
+OY db 13d
+
+
 .Code
 
 ;The main game loop for local mode
@@ -447,7 +454,7 @@ GameScreenMulti PROC
         lea bp, You_Win_Message
 
         DispMsgMulti:
-         mov al, 1
+        mov al, 1
         mov bh, 0
         mov bl, 4
         mov cx, 10
@@ -463,6 +470,19 @@ GameScreenMulti PROC
 
         AwaitESC:
         call Animate
+
+        ;display win/lose msg
+        mov al, 1
+        mov bh, 0
+        mov bl, 4
+        mov cx, 10
+        mov dl, 14
+        mov dh, 12
+        push ds
+        pop es
+        mov ah, 13h
+        int 10h
+
         mov ah,1
         int 16h   
         jz AwaitESC
@@ -476,7 +496,7 @@ GameScreenMulti PROC
         jmp GameLPMulti
         
     endingMulti:
-    mov SMsg, 'E' ;  e for end
+    mov SMsg, 200 ;  200 for end
     lea di,SMsg
     call far ptr SendByte
     ret
@@ -645,7 +665,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     ; cmp al,'s'
     ; je downP1
 
-    cmp ah, 39h
+    cmp ah, 52h
     je Player1
     cmp ah, 4Dh
     je RightP2
@@ -655,7 +675,10 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     je upP2
     cmp ah, 50h
     je downP2
-    
+    mov SMsg,al
+    lea di,SMsg
+    call SendByte
+    call WRITEINPUT
     ret
 ;==================================
 ;This part is responsible for updating the selector position on key press
@@ -3363,8 +3386,16 @@ ReceiveMsg PROC
     ret
 
     Recieve:
-    cmp RMsg, 'E'
-    jne NotEnd
+    
+    cmp RMsg, 200
+    je End
+    cmp RMsg,8
+    jbe NotEnd
+    mov al,RMsg
+    call WRITEOUTPUT
+    popa
+    ret
+    End:
     mov winner,3
     popa 
     ret
@@ -3566,4 +3597,243 @@ Clock PROC ;frame/al time between last iteration in 1/100 of second
     popa
     ret
 Clock ENDP
+
+
+WRITEINPUT PROC
+	cmp al,8
+	jne notback
+	mov ah,2
+	mov dl,8
+	int 21h
+	mov dl,' '
+	int 21h
+	mov dl,8
+	int 21h
+	cmp ix,0
+	je ohno3
+	dec iX
+	mov AH,2
+	mov DL,iX
+	MOV DH,iY
+	int 10h
+	ret
+	ohno3:
+	mov ix,7
+	cmp iy,13d
+	jne ohno4
+	mov ix,0
+	mov AH,2
+	mov DL,iX
+	MOV DH,iY
+	int 10h
+	ret
+	ohno4:
+	dec iy
+	mov AH,2
+	mov DL,iX
+	MOV DH,iY
+	int 10h
+	ret
+	notback:
+	cmp al,13d        ;to check if the value entered is an enter key
+	jne cont1
+	cmp Iy,17d
+	jb cont1
+	cmp ix,7d        ;to check the borders before writing the char
+	jb cc
+	CALL newILine
+	mov AH,2
+	mov DL,IX
+	MOV DH,IY
+	int 10h
+	call SCROLLInputScreen
+	RET
+	cc:
+	call SCROLLInputScreen
+	call newILine
+	mov IY,17d
+	mov AH,2
+	mov DL,IX
+	MOV DH,IY
+	int 10h
+	ret
+	cont1:
+	CMP AL,13d
+	JE IENTER
+	CMP ix,7
+	jb p1
+	mov IX,0
+	inc IY
+	p1:
+	mov AH,2
+	mov DL,IX
+	MOV DH,IY
+	int 10h
+
+	
+	mov ah,2
+	mov dl,al
+	int 21h
+	; MOV AH,09H
+	; MOV BH, 0      ; Set page number
+	; MOV BL, 0fh      ; Color (blue)
+	; MOV CX, 1      ; Character count
+	; INT 10h
+
+	INC IX
+	RET
+	IENTER:
+	CALL newILine
+	mov AH,2
+	mov DL,IX
+	MOV DH,IY
+	int 10h
+	RET
+WRITEINPUT ENDP
+
+  
+WRITEOUTPUT PROC
+	cmp al,8
+	jne notback2
+	cmp ox,30
+	je fo
+	mov ah,2
+	mov dl,8
+	int 21h
+	mov dl,' '
+	int 21h
+	mov dl,8
+	int 21h
+	fo:
+	cmp ox,30
+	jbe ohno1
+	dec OX
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
+	ret
+	ohno1:
+	mov ox,37d
+	cmp oy,13d
+	jne ohno2
+	mov ox,30d
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
+	ret
+	ohno2:
+	dec oy
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
+	ret
+	notback2:
+	cmp al,13d
+	jne cont2
+	cmp oy,17d
+	jb cont2
+	cmp ox,37d
+	jb cc1
+	call SCROLLOutputScreen      ;before scrolling the screen ->check the y if equal 24 and x if equal 79 the last place of the crusor ,if true scroll
+	RET
+	cc1:
+	call SCROLLOutputScreen
+	call newOLine
+	mov oY,17d
+	mov AH,2
+	mov DL,oX
+	MOV DH,oY
+	int 10h
+	ret
+	cont2:
+	CMP AL,13d
+	JE OENTER
+	CMP ox,37
+	jb p2
+	mov oX,30
+	inc oY
+	p2:
+	mov AH,2
+	mov DL,oX
+	MOV DH,oy
+	int 10h
+
+	mov ah,2
+	mov dl,al
+	int 21h
+	; MOV AH,09H
+	; MOV BH, 0      ; Set page number
+	; MOV BL, 0fh      ; Color (red)
+	; MOV CX, 1      ; Character count
+	; INT 10h
+
+	INC oX
+	RET
+	OENTER:
+	CALL newOLine
+	mov AH,2
+	mov DL,OX
+	MOV DH,OY
+	int 10h
+	RET
+WRITEOUTPUT ENDP
+
+
+SCROLLInputScreen proc
+	pusha
+	mov al,1h     ; function 6
+	mov ah,6h
+	mov bh,8Fh       ; normal video attribute         
+	mov ch,13       ; upper left Y
+	mov cl,0        ; upper left X
+	mov dh,17    ; lower right Y
+	mov dl,7      ; lower right X 
+	int 10h  
+	mov ah,3
+	mov bh,0
+	int 10h   
+	;mov ah,2
+	;mov dl,' '
+	;int 21h
+	popa
+	ret
+SCROLLInputScreen endp
+
+
+SCROLLOutputScreen proc
+	pusha
+	mov al,1h     ; function 6
+	mov ah,6h
+	mov bh,8Fh       ; normal video attribute         
+	mov ch,0       ; upper left Y
+	mov cl,30        ; upper left X
+	mov dh,17    ; lower right Y
+	mov dl,37      ; lower right X 
+	int 10h  
+	mov ah,3
+	mov bh,0
+	int 10h   
+	;mov ah,2
+	;;mov dl,' '
+	;int 21h
+	popa
+	ret
+SCROLLOutputScreen endp
+
+newILine proc
+	mov IX,0
+	inc IY
+	ret
+newILine endp
+
+newOLine proc
+	mov OX,30
+	inc OY
+	ret
+newOLine endp
+
+
 END ;MAIN

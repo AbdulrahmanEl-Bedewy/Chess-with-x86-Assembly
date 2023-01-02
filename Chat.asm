@@ -6,7 +6,7 @@ Public ChatScreen
 .data
 IY DB 0D
 IX DB 0D
-OX DB 39D
+OX DB 40D
 OY DB 0D
 VLine db '#'
 Player_Exited_Msg db 'The other person left the chat :(', '$'
@@ -155,7 +155,7 @@ WRITEINPUT PROC
 	int 10h
 	ret
 	ohno3:
-	mov ix,37
+	mov ix,38
 	cmp iy,0
 	jne ohno4
 	mov ix,0
@@ -176,7 +176,7 @@ WRITEINPUT PROC
 	jne cont1
 	cmp Iy,24d
 	jb cont1
-	cmp ix,37d        ;to check the borders before writing the char
+	cmp ix,38d        ;to check the borders before writing the char
 	jb cc
 	CALL newILine
 	mov AH,2
@@ -197,7 +197,7 @@ WRITEINPUT PROC
 	cont1:
 	CMP AL,13d
 	JE IENTER
-	CMP ix,37
+	CMP ix,38
 	jb p1
 	mov IX,0
 	inc IY
@@ -228,11 +228,11 @@ WRITEINPUT PROC
 	RET
 WRITEINPUT ENDP
 
-; ||aa  
+  
 WRITEOUTPUT PROC
 	cmp al,8
 	jne notback2
-	cmp ox,39
+	cmp ox,40
 	je fo
 	mov ah,2
 	mov dl,8
@@ -251,10 +251,10 @@ WRITEOUTPUT PROC
 	int 10h
 	ret
 	ohno1:
-	mov ox,79
+	mov ox,78
 	cmp oy,0
 	jne ohno2
-	mov ox,39
+	mov ox,40
 	mov AH,2
 	mov DL,oX
 	MOV DH,oY
@@ -272,7 +272,7 @@ WRITEOUTPUT PROC
 	jne cont2
 	cmp oy,24d
 	jb cont2
-	cmp ox,79d
+	cmp ox,78d
 	jb cc1
 	call SCROLLOutputScreen      ;before scrolling the screen ->check the y if equal 24 and x if equal 79 the last place of the crusor ,if true scroll
 	RET
@@ -288,9 +288,9 @@ WRITEOUTPUT PROC
 	cont2:
 	CMP AL,13d
 	JE OENTER
-	CMP ox,79
+	CMP ox,78
 	jb p2
-	mov oX,39
+	mov oX,40
 	inc oY
 	p2:
 	mov AH,2
@@ -330,7 +330,7 @@ inializeScreen proc
 	int 10h
 
 	mov ah,2
-	mov dl,38
+	mov dl,39
 	mov dh,0
 	mov cx,25         ;the length of the screen
 	lp:
@@ -338,7 +338,7 @@ inializeScreen proc
 		int 10h
 		mov dl,186   ;to print H to separate the screen at the middle
 		int 21h
-		mov dl,38
+		mov dl,39
 		inc dh
 	LOOP lp
 
@@ -346,7 +346,7 @@ inializeScreen proc
 	mov ah,6h
    mov bh, 8Fh       ; normal video attribute         
    mov ch,0       ; upper left Y
-   mov cl,39        ; upper left X
+   mov cl,40        ; upper left X
    mov dh,24    ; lower right Y
    mov dl,79      ; lower right X 
    int 10h  
@@ -357,13 +357,13 @@ inializeScreen proc
    mov ch,0       ; upper left Y
    mov cl,0        ; upper left X
    mov dh,24    ; lower right Y
-   mov dl,37      ; lower right X 
+   mov dl,38      ; lower right X 
    int 10h  
    
    	
 	mov IY , 0D
 	mov IX , 0D
-	mov OX , 39D
+	mov OX , 40D
 	mov OY , 0D 
 	
 	mov ah,2
@@ -388,7 +388,7 @@ SCROLLInputScreen proc
 	mov ch,0       ; upper left Y
 	mov cl,0        ; upper left X
 	mov dh,24    ; lower right Y
-	mov dl,37      ; lower right X 
+	mov dl,38      ; lower right X 
 	int 10h  
 	mov ah,3
 	mov bh,0
@@ -407,7 +407,7 @@ SCROLLOutputScreen proc
 	mov ah,6h
 	mov bh,8Fh       ; normal video attribute         
 	mov ch,0       ; upper left Y
-	mov cl,39        ; upper left X
+	mov cl,40        ; upper left X
 	mov dh,24    ; lower right Y
 	mov dl,79      ; lower right X 
 	int 10h  
@@ -428,7 +428,7 @@ newILine proc
 newILine endp
 
 newOLine proc
-	mov OX,39
+	mov OX,40
 	inc OY
 	ret
 newOLine endp
