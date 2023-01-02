@@ -16,6 +16,7 @@ EXTRN name2:byte
 EXTRN CursorColor:byte
 EXTRN MovesColor:byte
 EXTRN AttackColor:byte
+EXTRN Ana_El_Tl3t:Byte
 ;EXTRN Moves_bishop:FAR
 Public to_idx
 ; Public GameScreenLocal
@@ -414,7 +415,7 @@ GameScreenMulti PROC
         int 16h   
         
         cmp ah, 01
-        je endingMulti
+        je endingMultiMid
 
 
         ;Check if select key pressed
@@ -428,28 +429,38 @@ GameScreenMulti PROC
         jmp DispMsgMulti
         
         Player_Left:
-        lea bp, Player_Left_Message
-        mov al, 1
-        mov bh, 0
-        mov bl, 4
-        mov cx, 33
-        mov dl, 5
-        mov dh, 12
-        push ds
-        pop es
-        mov ah, 13h
-        int 10h
+            lea bp, Player_Left_Message
+            mov al, 1
+            mov bh, 0
+            mov bl, 4
+            mov cx, 33
+            mov dl, 5
+            mov dh, 12
+            push ds
+            pop es
+            mov ah, 13h
+            int 10h
 
-        AwaitESC2:
-        mov ah,1
-        int 16h   
-        jz AwaitESC2
-        mov ah,0
-        int 16h  
-        cmp ah,1
-        jne AwaitESC2
+            AwaitESC2:
+            mov ah,1
+            int 16h   
+            jz AwaitESC2
+            mov ah,0
+            int 16h  
+            cmp ah,1
+            jne AwaitESC2
+
+            mov SMsg, 201
+            lea di, SMsg
+            call far ptr SendByte
+
         ret
         
+        GameLP1Multi:
+        jmp GameLPMulti
+        endingMultiMid:
+        jmp endingMulti
+
         I_Win:
         lea bp, You_Win_Message
 
@@ -490,15 +501,17 @@ GameScreenMulti PROC
         int 16h  
         cmp ah,1
         jne AwaitESC
+
         ret
     
-        GameLP1Multi:
-        jmp GameLPMulti
+
         
     endingMulti:
     mov SMsg, 200 ;  200 for end
     lea di,SMsg
     call far ptr SendByte
+
+    mov Ana_El_Tl3t,1
     ret
 GameScreenMulti ENDP
 

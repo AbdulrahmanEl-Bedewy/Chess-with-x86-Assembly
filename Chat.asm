@@ -1,5 +1,8 @@
 Public ChatScreen
-
+EXTRN SendByte:FAR
+EXTRN Ana_El_Tl3t:Byte
+EXTRN SMsg:Byte
+EXTRN RMsg:Byte
 .286
 .model small
 .stack 64
@@ -99,6 +102,10 @@ ChatScreen proc far
         int 16h  
         cmp ah,1
         jne AwaitESC
+
+		mov SMsg, 201
+		lea di, SMsg
+		call SendByte
         ret         
                  
      EXIT:
@@ -106,7 +113,7 @@ ChatScreen proc far
 	 call SENDKEY
 	 call SCROLLInputScreen
 	 call SCROLLOutputScreen
-	 
+	 mov Ana_El_Tl3t, 1
 	ret 
 	
 ChatScreen ENDP

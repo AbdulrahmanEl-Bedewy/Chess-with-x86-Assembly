@@ -11,6 +11,7 @@ EXTRN RMsg:Byte
 EXTRN Mode:Byte
 Public name1
 Public name2
+Public Ana_El_Tl3t
 
 
 
@@ -40,6 +41,8 @@ Public name2
     Invited_To_Game db 0 ;0 default 1: i was sent and invite 2: i sent and invite 
     Invited_To_Chat db 0 ;0 default 1: i was sent and invite 2: i sent and invite 
     SentInvite db 0
+
+    Ana_El_Tl3t db 0 
 
 
 .code
@@ -240,6 +243,9 @@ GetPlayer2Name:
         mov Invited_To_Game, 0
         mov Invited_To_Chat, 0
         call ChatScreen
+
+        cmp Ana_El_Tl3t,1
+        je ReturnFromScreen
         jmp MainMenu
              
 
@@ -264,11 +270,34 @@ GetPlayer2Name:
         mov Mode, 1
         call GameScreenMulti
         ;mov Invited_To_Game , 0
+        cmp Ana_El_Tl3t,1
+        je ReturnFromScreen
         jmp MainMenu
     
     
-
+    ReturnFromScreen:
+        call MainMenuScreen
     
+        MOV AH,2
+        MOV BH,00
+        MOV DL,0
+        MOV DH,22
+        INT 10H
+        ; print 'hello ' + name
+        mov ah, 9
+        mov dx, offset Waiting_For_Msg
+        int 21h
+
+        lea di, RMsg
+        mov dh, 201
+         Q21:
+            call ReceiveByte
+            cmp [di], dh
+            jne Q21
+        mov Ana_El_Tl3t,0
+        jmp MainMenu
+    
+
     EndLabel:
     mov SMsg, 'B'
     lea di,SMsg
