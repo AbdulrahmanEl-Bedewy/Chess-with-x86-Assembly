@@ -679,6 +679,8 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     je upP2
     cmp ah, 50h
     je downP2
+    cmp al,8
+    je Return
     mov SMsg,al
     lea di,SMsg
     call far ptr SendByte
@@ -3620,8 +3622,10 @@ Clock ENDP
 WRITEINPUT PROC
     cmp IY,21d
     jb kammelI
+    cmp IX,6
+    jb kammelI
     call SCROLLInputScreen
-    mov IY,20d
+    mov IY,21d
     mov IX,0
     kammelI:
 	cmp al,8
@@ -3661,12 +3665,12 @@ WRITEINPUT PROC
 	notback:
 	cmp al,13d        ;to check if the value entered is an enter key
 	jne cont1
-	cmp Iy,20d
+	cmp Iy,21d
 	jb cont1
 	cmp ix,6d        ;to check the borders before writing the char
 	jb cc
 	CALL newILine
-    mov Iy,20d
+    mov Iy,21d
 	mov AH,2
 	mov DL,IX
 	MOV DH,IY
@@ -3676,7 +3680,7 @@ WRITEINPUT PROC
 	cc:
 	call SCROLLInputScreen
 	call newILine
-	mov IY,20d
+	mov IY,21d
 	mov AH,2
 	mov DL,IX
 	MOV DH,IY
@@ -3720,9 +3724,11 @@ WRITEINPUT ENDP
 WRITEOUTPUT PROC
     cmp OY,21d
     jb kammelO
+    cmp Ox,39
+    jb KammelO
     call SCROLLOutputScreen
-    mov OY,20d
-    mov OX,33
+    mov OY,21d
+    mov Ox,33
     kammelO:
 	cmp al,8
 	jne notback2
@@ -3764,12 +3770,12 @@ WRITEOUTPUT PROC
 	notback2:
 	cmp al,13d
 	jne cont2
-	cmp oy,20d
+	cmp oy,21d
 	jb cont2
 	cmp ox,39d
 	jb cc1
 	CALL newOLine
-    mov Oy,20d
+    mov Oy,21d
 	mov AH,2
 	mov DL,OX
 	MOV DH,OY
@@ -3779,7 +3785,7 @@ WRITEOUTPUT PROC
 	cc1:
 	call SCROLLOutputScreen
 	call newOLine
-	mov oY,20d
+	mov oY,21d
 	mov AH,2
 	mov DL,oX
 	MOV DH,oY
@@ -3827,7 +3833,7 @@ SCROLLInputScreen proc
 	mov ch,15       ; upper left Y
 	mov cl,0        ; upper left X
 	mov dh,21    ; lower right Y
-	mov dl,6      ; lower right X 
+	mov dl,5      ; lower right X 
 	int 10h  
 	mov ah,3
 	mov bh,0
@@ -3848,7 +3854,7 @@ SCROLLOutputScreen proc
 	mov ch,15       ; upper left Y
 	mov cl,33        ; upper left X
 	mov dh,21    ; lower right Y
-	mov dl,39      ; lower right X 
+	mov dl,38      ; lower right X 
 	int 10h  
 	mov ah,3
 	mov bh,0
