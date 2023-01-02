@@ -27,12 +27,12 @@ Public name2
     Press_Enter db 'Press any button To contiue','$';27
     Greeting db 'Hello $'
     ChatMsg db 'To start chatting press F1','$'; 25
-    StartGameMsgLocal db 'To start the game press local mode F2','$';37
+    ; StartGameMsgLocal db 'To start the game press local mode F2','$';37
     StartGameMsgMulti db 'To start the game press F2','$';26
     CloseMsg db 'To end the program press Esc','$' ;28
     ; CloseMsg db 'To end the program press ESC','$' ;28
-    InvitMsg db 'You are invited to a game to accept press f2','$' ;43
-    InvitChatMsg db 'You are invited to a chat to accept press f1','$' ;43
+    InvitMsg db ' invited you to a game to accept press f2','$' ;43
+    InvitChatMsg db ' invited you to chat to accept press f1','$' ;43
     InvitMsgClear db '                                                           ','$' ;43
     Waiting_For_Msg db 'Waiting for player 2','$' ;19
     numB db 0     
@@ -87,6 +87,7 @@ GetPlayer2Name:
         cmp [di], al
         je GPN1
         mov [di], al
+        inc di
         jmp GPN
     GPN1:
 
@@ -171,6 +172,9 @@ GetPlayer2Name:
         INT 10H
         ; print 'hello ' + name
         mov ah, 9
+        mov dx, offset name2
+        int 21h
+        mov ah, 9
         mov dx, offset InvitMsg
         int 21h
         jmp GetInput
@@ -205,6 +209,9 @@ GetPlayer2Name:
         MOV DH,20
         INT 10H
         ; print 'hello ' + name
+        mov ah, 9
+        mov dx, offset name2
+        int 21h
         mov ah, 9
         mov dx, offset InvitChatMsg
         int 21h
@@ -573,21 +580,35 @@ ExchangeNames PROC
     ;         je C1
 
     lea di, name1
-    mov al, '$'
+    mov bh, '$'
     SendName2:
 
-        cmp [di],al
+        cmp [di],bh
         je NameSent2
         call SendByte
         
         Q9:
+
+            mov ah, 1
+            int 16h  
+            jz SkipCheckInput
+            cmp ah,1
+            jne SkipInput
+            ret
+            SkipInput:
+            mov ah, 0
+            int 16h  
+            SkipCheckInput:
             push di
             lea di,Rmsg
             call ReceiveByte
             cmp [di], bl
             pop di
             je Q9
+            
+            
 
+    Continue_Send:
         inc di
         jmp SendName2
     NameSent2:
