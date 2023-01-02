@@ -128,7 +128,7 @@ Mode db 0 ; dh el by7aded whether im player1 or player 2
 IX db 0
 IY db 13d
 
-OX db 30d
+OX db 33d
 OY db 13d
 
 
@@ -580,6 +580,10 @@ InitGame PROC Far
         mov seconds,0
         mov minutes,0
         mov counter,0
+        mov IX,0
+        mov IY,13d
+        mov OX,33
+        mov OY,13d
 ; initialize the board and draws all pieces in place
         call InitBoard   
         DrawSq px, py
@@ -683,7 +687,9 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     mov bh,0
     mov ah,2
     int 10h
+    pusha
     call WRITEINPUT
+    popa
     ret
 ;==================================
 ;This part is responsible for updating the selector position on key press
@@ -3402,7 +3408,9 @@ ReceiveMsg PROC
     mov bh,0
     mov ah,2
     int 10h
+    pusha
     call WRITEOUTPUT
+    popa
     popa
     ret
     End2:
@@ -3652,6 +3660,7 @@ WRITEINPUT PROC
 	cmp ix,6d        ;to check the borders before writing the char
 	jb cc
 	CALL newILine
+    mov Iy,17d
 	mov AH,2
 	mov DL,IX
 	MOV DH,IY
@@ -3705,7 +3714,7 @@ WRITEINPUT ENDP
 WRITEOUTPUT PROC
 	cmp al,8
 	jne notback2
-	cmp ox,32
+	cmp ox,33
 	je fo
 	mov ah,2
 	mov dl,8
@@ -3715,7 +3724,7 @@ WRITEOUTPUT PROC
 	mov dl,8
 	int 21h
 	fo:
-	cmp ox,32
+	cmp ox,33
 	jbe ohno1
 	dec OX
 	mov AH,2
@@ -3724,10 +3733,10 @@ WRITEOUTPUT PROC
 	int 10h
 	ret
 	ohno1:
-	mov ox,38d
+	mov ox,39d
 	cmp oy,13d
 	jne ohno2
-	mov ox,32d
+	mov ox,33d
 	mov AH,2
 	mov DL,oX
 	MOV DH,oY
@@ -3745,9 +3754,15 @@ WRITEOUTPUT PROC
 	jne cont2
 	cmp oy,17d
 	jb cont2
-	cmp ox,38d
+	cmp ox,39d
 	jb cc1
-	call SCROLLOutputScreen      ;before scrolling the screen ->check the y if equal 24 and x if equal 79 the last place of the crusor ,if true scroll
+	CALL newOLine
+    mov Oy,17d
+	mov AH,2
+	mov DL,OX
+	MOV DH,OY
+	int 10h
+	call SCROLLOutputScreen
 	RET
 	cc1:
 	call SCROLLOutputScreen
@@ -3761,9 +3776,9 @@ WRITEOUTPUT PROC
 	cont2:
 	CMP AL,13d
 	JE OENTER
-	CMP ox,38
+	CMP ox,39
 	jb p2
-	mov oX,32
+	mov oX,33
 	inc oY
 	p2:
 	mov AH,2
@@ -3819,9 +3834,9 @@ SCROLLOutputScreen proc
 	mov ah,6h
 	mov bh,8Fh       ; normal video attribute         
 	mov ch,13       ; upper left Y
-	mov cl,32        ; upper left X
+	mov cl,33        ; upper left X
 	mov dh,17    ; lower right Y
-	mov dl,38      ; lower right X 
+	mov dl,39      ; lower right X 
 	int 10h  
 	mov ah,3
 	mov bh,0
@@ -3840,7 +3855,7 @@ newILine proc
 newILine endp
 
 newOLine proc
-	mov OX,30
+	mov OX,33
 	inc OY
 	ret
 newOLine endp
