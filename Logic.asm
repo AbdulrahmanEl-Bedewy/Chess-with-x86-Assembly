@@ -677,7 +677,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     je downP2
     mov SMsg,al
     lea di,SMsg
-    call SendByte
+    call far ptr SendByte
     call WRITEINPUT
     ret
 ;==================================
@@ -3388,14 +3388,14 @@ ReceiveMsg PROC
     Recieve:
     
     cmp RMsg, 200
-    je End
+    je End2
     cmp RMsg,8
     jbe NotEnd
     mov al,RMsg
     call WRITEOUTPUT
     popa
     ret
-    End:
+    End2:
     mov winner,3
     popa 
     ret
