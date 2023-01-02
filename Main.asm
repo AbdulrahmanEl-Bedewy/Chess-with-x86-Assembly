@@ -606,8 +606,6 @@ ExchangeNames PROC
             pop di
             je Q9
             
-            
-
     Continue_Send:
         inc di
         jmp SendName2

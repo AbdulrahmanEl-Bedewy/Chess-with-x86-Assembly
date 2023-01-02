@@ -9,6 +9,7 @@ IX DB 0D
 OX DB 39D
 OY DB 0D
 VLine db '#'
+Player_Exited_Msg db 'The other person left the chat :(', '$'
 .code
 ChatScreen proc far  
                  
@@ -48,9 +49,9 @@ ChatScreen proc far
     cmp al, 21h
     jb oout
    ; cmp al, 'Z'
-;    jb oout
-;    cmp al, 'a'
-;    jb oout
+	;    jb oout
+	;    cmp al, 'a'
+	;    jb oout
     
     vvv:  
 	
@@ -69,22 +70,46 @@ ChatScreen proc far
 	;RECIVE DATA AND CALL WRITE IN OUTPUT PROC
 	MOV DX,03F8H
 	IN AL,DX
+	cmp al, 200
+	je OtherPlayerExited
 	CALL WRITEOUTPUT
 
 	JMP CHECKKEYPRESSED
 	;END CODE
 	
 	
-             
-                 
+    OtherPlayerExited:
+		lea bp, Player_Exited_Msg
+        mov al, 1
+        mov bh, 0
+        mov bl, 4
+        mov cx, 33
+        mov dl, 24
+        mov dh, 12
+        push ds
+        pop es
+        mov ah, 13h
+        int 10h
+		
+		AwaitESC:
+        mov ah,1
+        int 16h   
+        jz AwaitESC
+        mov ah,0
+        int 16h  
+        cmp ah,1
+        jne AwaitESC
+        ret         
                  
      EXIT:
+	 mov al, 200
+	 call SENDKEY
 	 call SCROLLInputScreen
 	 call SCROLLOutputScreen
 	 
 	ret 
 	
-    ChatScreen ENDP
+ChatScreen ENDP
 	
 	
 	
