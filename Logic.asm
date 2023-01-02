@@ -126,10 +126,10 @@ Player db 'W' ; dh el by7aded whether im player1 or player 2
 Mode db 0 ; dh el by7aded whether im player1 or player 2
 
 IX db 0
-IY db 13d
+IY db 15d
 
 OX db 33d
-OY db 13d
+OY db 15d
 
 
 .Code
@@ -581,9 +581,9 @@ InitGame PROC Far
         mov minutes,0
         mov counter,0
         mov IX,0
-        mov IY,13d
+        mov IY,15d
         mov OX,33
-        mov OY,13d
+        mov OY,15d
 ; initialize the board and draws all pieces in place
         call InitBoard   
         DrawSq px, py
@@ -3618,6 +3618,12 @@ Clock ENDP
 
 
 WRITEINPUT PROC
+    cmp IY,21d
+    jb kammelI
+    call SCROLLInputScreen
+    mov IY,20d
+    mov IX,0
+    kammelI:
 	cmp al,8
 	jne notback
 	mov ah,2
@@ -3637,7 +3643,7 @@ WRITEINPUT PROC
 	ret
 	ohno3:
 	mov ix,6
-	cmp iy,13d
+	cmp iy,15d
 	jne ohno4
 	mov ix,0
 	mov AH,2
@@ -3655,12 +3661,12 @@ WRITEINPUT PROC
 	notback:
 	cmp al,13d        ;to check if the value entered is an enter key
 	jne cont1
-	cmp Iy,17d
+	cmp Iy,20d
 	jb cont1
 	cmp ix,6d        ;to check the borders before writing the char
 	jb cc
 	CALL newILine
-    mov Iy,17d
+    mov Iy,20d
 	mov AH,2
 	mov DL,IX
 	MOV DH,IY
@@ -3670,7 +3676,7 @@ WRITEINPUT PROC
 	cc:
 	call SCROLLInputScreen
 	call newILine
-	mov IY,17d
+	mov IY,20d
 	mov AH,2
 	mov DL,IX
 	MOV DH,IY
@@ -3712,6 +3718,12 @@ WRITEINPUT ENDP
 
   
 WRITEOUTPUT PROC
+    cmp OY,21d
+    jb kammelO
+    call SCROLLOutputScreen
+    mov OY,20d
+    mov OX,33
+    kammelO:
 	cmp al,8
 	jne notback2
 	cmp ox,33
@@ -3734,7 +3746,7 @@ WRITEOUTPUT PROC
 	ret
 	ohno1:
 	mov ox,39d
-	cmp oy,13d
+	cmp oy,15d
 	jne ohno2
 	mov ox,33d
 	mov AH,2
@@ -3752,12 +3764,12 @@ WRITEOUTPUT PROC
 	notback2:
 	cmp al,13d
 	jne cont2
-	cmp oy,17d
+	cmp oy,20d
 	jb cont2
 	cmp ox,39d
 	jb cc1
 	CALL newOLine
-    mov Oy,17d
+    mov Oy,20d
 	mov AH,2
 	mov DL,OX
 	MOV DH,OY
@@ -3767,7 +3779,7 @@ WRITEOUTPUT PROC
 	cc1:
 	call SCROLLOutputScreen
 	call newOLine
-	mov oY,17d
+	mov oY,20d
 	mov AH,2
 	mov DL,oX
 	MOV DH,oY
@@ -3811,10 +3823,10 @@ SCROLLInputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,8Fh       ; normal video attribute         
-	mov ch,13       ; upper left Y
+	mov bh,0h       ; normal video attribute         
+	mov ch,15       ; upper left Y
 	mov cl,0        ; upper left X
-	mov dh,17    ; lower right Y
+	mov dh,21    ; lower right Y
 	mov dl,6      ; lower right X 
 	int 10h  
 	mov ah,3
@@ -3832,10 +3844,10 @@ SCROLLOutputScreen proc
 	pusha
 	mov al,1h     ; function 6
 	mov ah,6h
-	mov bh,8Fh       ; normal video attribute         
-	mov ch,13       ; upper left Y
+	mov bh,0h       ; normal video attribute         
+	mov ch,15       ; upper left Y
 	mov cl,33        ; upper left X
-	mov dh,17    ; lower right Y
+	mov dh,21    ; lower right Y
 	mov dl,39      ; lower right X 
 	int 10h  
 	mov ah,3
