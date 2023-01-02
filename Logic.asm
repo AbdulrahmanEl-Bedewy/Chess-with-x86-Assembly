@@ -584,6 +584,8 @@ InitGame PROC Far
         mov IY,15d
         mov OX,33
         mov OY,15d
+        
+	    
 ; initialize the board and draws all pieces in place
         call InitBoard   
         DrawSq px, py
@@ -641,6 +643,15 @@ InitGame PROC Far
         mov dx, di
 		mov ah, 9
 		int 21h
+
+
+        push cx
+        mov cx,10
+        SetupChat:
+        call SCROLLInputScreen
+        call SCROLLOutputScreen
+        LOOP SetupChat
+        pop cx
 
         call UpdateCheck
         popa
