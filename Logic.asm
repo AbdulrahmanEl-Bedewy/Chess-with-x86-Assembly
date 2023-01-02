@@ -2376,6 +2376,11 @@ Is_Check PROC
             mov al, '0'
             cmp [bx+1], al
             je Incheck_Mid1
+
+            sub ah, ch
+            cmp ah,1
+            jne IC_Next1
+
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid1
@@ -2409,9 +2414,15 @@ Is_Check PROC
             mov al, '0'
             cmp [bx+1], al
             je Incheck_Mid1
+            
+            sub ah, ch
+            cmp ah, -1
+            jne IC_Next2
+
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid1
+
 
 
         ;==================
@@ -2447,6 +2458,11 @@ Is_Check PROC
             mov al, '0'
             cmp [bx+1], al
             je Incheck_Mid1
+
+            sub ah, cl
+            cmp ah, -1
+            jne IC_Next3
+            
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid1
@@ -2479,6 +2495,11 @@ Is_Check PROC
             mov al, '0'
             cmp [bx+1], al
             je Incheck_Mid1
+
+            sub ah, cl
+            cmp ah, 1
+            jne Bishop
+
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid1
@@ -2518,6 +2539,12 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+
+            sub ah, ch
+            cmp ah, 1
+            jne I_C_Next1
+
+
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid2
@@ -2550,6 +2577,11 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+
+            sub ah, ch
+            cmp ah, -1
+            jne I_C_Next2
+
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid2
@@ -2587,7 +2619,12 @@ Is_Check PROC
             je Incheck_Mid2 
             mov al, '3'
             cmp [bx+1], al
-            je Incheck_Mid2 
+            je Incheck_Mid2
+            
+            sub ah, ch
+            cmp ah, 1
+            jne I_C_Next3
+             
             mov al, '4'
             cmp [bx+1], al
             je Incheck_Mid2
@@ -2620,9 +2657,15 @@ Is_Check PROC
             mov al, '3'
             cmp [bx+1], al
             je Incheck_Mid2 
+
+            sub ah, ch
+            cmp ah, -1
+            jne Knight
+
             mov al, '4'
             cmp [bx+1], al
-            je Incheck_Mid2
+            jne Knight
+            jmp far ptr InCheck
 
 
     Knight:
