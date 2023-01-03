@@ -3481,6 +3481,10 @@ ReceiveMsg PROC
     je End2
     cmp RMsg,8
     jbe NotEnd
+    cmp Rmsg,20h
+    jb khalas_Ba2a
+    cmp Rmsg,7Eh
+    ja khalas_Ba2a
     mov al,RMsg
     mov dh,OY
     mov dl,OX
@@ -3494,6 +3498,10 @@ ReceiveMsg PROC
     ret
     End2:
     mov winner,3
+    popa 
+    ret
+
+    khalas_Ba2a:
     popa 
     ret
 
