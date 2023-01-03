@@ -711,6 +711,10 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     je downP2
     cmp al,8
     je Return
+    cmp al,20h
+    jb Return
+    cmp al,7Eh
+    ja Return
     mov SMsg,al
     lea di,SMsg
     call far ptr SendByte

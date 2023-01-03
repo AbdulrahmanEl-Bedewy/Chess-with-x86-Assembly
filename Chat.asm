@@ -144,6 +144,14 @@ intializePort proc
 intializePort endp
 
 WRITEINPUT PROC
+	cmp IY,24d
+    jb kammelI
+    cmp IX,37
+    jb kammelI
+    call SCROLLInputScreen
+    mov IY,24d
+    mov IX,0
+    kammelI:
 	cmp al,8
 	jne notback
 	mov ah,2
@@ -237,6 +245,14 @@ WRITEINPUT ENDP
 
   
 WRITEOUTPUT PROC
+	cmp OY,24d
+    jb kammelO
+    cmp Ox,78
+    jb KammelO
+    call SCROLLOutputScreen
+    mov OY,24d
+    mov Ox,40
+    kammelO:
 	cmp al,8
 	jne notback2
 	cmp ox,40
