@@ -502,6 +502,12 @@ GameScreenMulti PROC
         cmp ah,1
         jne AwaitESC
 
+        mov SMsg, 201
+        lea di, SMsg
+        call far ptr SendByte
+        
+        mov Ana_El_Tl3t,1
+
         ret
     
 
