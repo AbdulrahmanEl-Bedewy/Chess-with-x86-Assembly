@@ -41,7 +41,8 @@ You can retrieve the server's IP by typing `ipconfig` in the command prompt on t
 ## Controls & How to play
 The game is played using the keyboard. The controls are as follows:
 - Arrow keys to move the cursor.
-- 0 numpad to select a piece.
+- 0 numpad to select a piece.  
+
 You can find that the game also has a chat feature. The chat feature is used to communicate with the other player. The chat feature is accessed either as a separate mode or as a part of the game. You can just start typing while playing the game. The chat is displayed on the side of the game.
 
 ## Screenshots
