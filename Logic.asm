@@ -727,6 +727,10 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     call WRITEINPUT
     popa
     ret
+
+    Player1:
+    mov dl, Player ; W indicates that it is player one that is selecting
+    jmp select_mid
 ;==================================
 ;This part is responsible for updating the selector position on key press
     ; RightP1:  
@@ -776,9 +780,7 @@ HandleInput PROC Far   ; the user input is in ax => al:ascii ah:scan code
     Return:
         ret
 
-    Player1:
-    mov dl, Player ; W indicates that it is player one that is selecting
-    jmp select_mid
+    
 
     ; Player2:
     ; mov dl, 'B' ; B indicates that it is player one that is selecting
